@@ -120,6 +120,41 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
  */
 const clock = new THREE.Clock()
 
+/**
+ * Object declarations
+ */
+let snakeHead = null;
+let appleInstance = null;
+
+/**
+ * Event handlers
+ */
+const onDocumentKeyDown = (event) => {
+    console.log(event.which);
+    var keyCode = event.which;
+    if (keyCode == 87) {
+        if (snakeHead === null) {
+            return;
+        }
+        snakeHead.position.x += 1;
+    } else if (keyCode == 83) {
+        if (snakeHead === null) {
+            return;
+        }
+        snakeHead.position.x -= 1;
+    } else if (keyCode == 65) {
+        if (snakeHead === null) {
+            return;
+        }
+        snakeHead.position.z -= 1;
+    } else if (keyCode == 68) {
+        if (snakeHead === null) {
+            return;
+        }
+        snakeHead.position.z += 1;
+    }
+};
+
 const tick = () => {
     const elapsedTime = clock.getElapsedTime()
 
@@ -136,13 +171,14 @@ const tick = () => {
 }
 
 const init = () => {
-    console.log(modelLoader);
+    document.addEventListener("keydown", onDocumentKeyDown, false);
+
     modelLoader.load('/models/snake_body.obj', 
         (snakeBodyPart => {
             /**
              * Snake
              */
-            const snakeHead = snakeBodyPart.clone();
+            snakeHead = snakeBodyPart.clone();
             snakeHead.children[0].scale.set(.5, .5, .5);
             snakeHead.children[0].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
             snakeHead.position.x = -FLOOR_X_POSITION + 0.5;
@@ -170,7 +206,7 @@ const init = () => {
             /**
              * Apple
              */
-            const appleInstance = apple.clone();
+            appleInstance = apple.clone();
             appleInstance.children.forEach(c => c.scale.set(.5, .5, .5));
             appleInstance.children[0].material =  new THREE.MeshStandardMaterial( {color: 0xeb4934});
             appleInstance.children[1].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
