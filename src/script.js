@@ -153,7 +153,23 @@ const onDocumentKeyDown = (event) => {
         }
         snakeHead.position.z += 1;
     }
+
+    if (isSnakeHeadOnApple(snakeHead, appleInstance)) {
+        moveAppleToRandomPosition(appleInstance);
+    }
 };
+
+const isSnakeHeadOnApple = (snakeHead, apple) => {
+    return snakeHead.position.x === apple.position.x
+        && snakeHead.position.y === apple.position.y
+        && snakeHead.position.z === apple.position.z;
+}
+
+const moveAppleToRandomPosition = (apple) => {
+    apple.position.x = Math.floor(Math.random() * FLOOR_X_SIZE) - (FLOOR_X_SIZE / 2) + 0.5;
+    apple.position.z = Math.floor(Math.random() * FLOOR_Y_SIZE) - (FLOOR_Y_SIZE / 2) + 0.5;
+};
+
 
 const tick = () => {
     const elapsedTime = clock.getElapsedTime()
