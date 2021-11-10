@@ -97,9 +97,9 @@ window.addEventListener('resize', () =>
 // Base camera
 const aspectRatio = sizes.width / sizes.height;
 const camera = new THREE.OrthographicCamera(-1 * aspectRatio * scale, 1 * aspectRatio * scale, 1 * scale, -1 * scale, 0.1, 1000)
-camera.position.x = 100
+camera.position.x = -100
 camera.position.y = 100
-camera.position.z = 100
+camera.position.z = -100
 scene.add(camera)
 
 // Controls
