@@ -121,45 +121,36 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 const clock = new THREE.Clock()
 
 /**
- * Object declarations
+ * Declarations
  */
-let snakeHead = null;
-let appleInstance = null;
 
+let snakeHead = null;
+// 0 -> +x, 1 -> -x, 2 -> +y, 3 -> -y
+let snakeDirection = 0;
+let moveDuration = .25;
+let prevMoveTime = 0;
+
+let appleInstance = null;
 /**
  * Event handlers
  */
 const onDocumentKeyDown = (event) => {
-    console.log(event.which);
-    var keyCode = event.which;
+    let keyCode = event.which;
     if (keyCode == 87) {
-        if (snakeHead === null) {
-            return;
-        }
-        snakeHead.position.x += 1;
+        snakeDirection = 0;
     } else if (keyCode == 83) {
-        if (snakeHead === null) {
-            return;
-        }
-        snakeHead.position.x -= 1;
-    } else if (keyCode == 65) {
-        if (snakeHead === null) {
-            return;
-        }
-        snakeHead.position.z -= 1;
+        snakeDirection = 1;
     } else if (keyCode == 68) {
-        if (snakeHead === null) {
-            return;
-        }
-        snakeHead.position.z += 1;
-    }
-
-    if (isSnakeHeadOnApple(snakeHead, appleInstance)) {
-        moveAppleToRandomPosition(appleInstance);
+       snakeDirection = 2;
+    } else if (keyCode == 65) {
+        snakeDirection = 3;
     }
 };
 
 const isSnakeHeadOnApple = (snakeHead, apple) => {
+    if (snakeHead === null || apple === null) {
+        return;
+    }
     return snakeHead.position.x === apple.position.x
         && snakeHead.position.y === apple.position.y
         && snakeHead.position.z === apple.position.z;
@@ -170,11 +161,42 @@ const moveAppleToRandomPosition = (apple) => {
     apple.position.z = Math.floor(Math.random() * FLOOR_Y_SIZE) - (FLOOR_Y_SIZE / 2) + 0.5;
 };
 
+const moveSnake = (snakeHead, snakeDirection) => {
+    if (snakeHead === null) {
+        return;
+    }
+    switch (snakeDirection) {
+        case 0:
+            snakeHead.position.x += 1;
+            break;
+        case 1:
+            snakeHead.position.x -= 1;
+            break;
+        case 2:
+            snakeHead.position.z += 1;
+            break;
+        case 3:
+            snakeHead.position.z -= 1;
+            break;
+        default:
+            console.warn(`Invalid snake direction '${snakeDirection}'. Should be in range [0, 3]. Skipping.`);
+    }
+};
+
 
 const tick = () => {
-    const elapsedTime = clock.getElapsedTime()
+    const currTime = clock.getElapsedTime();
 
     // Update objects
+    if (currTime - prevMoveTime >= moveDuration) {
+        moveSnake(snakeHead, snakeDirection);
+
+        if (isSnakeHeadOnApple(snakeHead, appleInstance)) {
+            moveAppleToRandomPosition(appleInstance);
+        }
+
+        prevMoveTime = currTime;
+    }
 
     // Update controls
     controls.update()
@@ -200,6 +222,7 @@ const init = () => {
             snakeHead.position.x = -FLOOR_X_POSITION + 0.5;
             snakeHead.position.z = -FLOOR_Y_POSITION + 0.5;
             snakeHead.position.y = -FLOOR_Z_POSITION + 0.5;
+            snakeHead.rotation.order = 'YXZ';
             scene.add(snakeHead);
 
             const snakeHeadPlane = new THREE.Mesh(
@@ -233,6 +256,7 @@ const init = () => {
             scene.add(appleInstance);
         }
     ));
+
     tick();
 };
 
