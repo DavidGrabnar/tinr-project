@@ -168,15 +168,19 @@ const moveSnake = (snakeHead, snakeDirection) => {
     switch (snakeDirection) {
         case 0:
             snakeHead.position.x += 1;
+            snakeHead.rotateY(0 - snakeHead.rotation.y);
             break;
         case 1:
             snakeHead.position.x -= 1;
+            snakeHead.rotateY(Math.PI - snakeHead.rotation.y);
             break;
         case 2:
             snakeHead.position.z += 1;
+            snakeHead.rotateY((-Math.PI / 2) - snakeHead.rotation.y);
             break;
         case 3:
             snakeHead.position.z -= 1;
+            snakeHead.rotateY((Math.PI / 2) - snakeHead.rotation.y);
             break;
         default:
             console.warn(`Invalid snake direction '${snakeDirection}'. Should be in range [0, 3]. Skipping.`);
