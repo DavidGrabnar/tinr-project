@@ -102,6 +102,8 @@ camera.position.y = 100
 camera.position.z = -100
 scene.add(camera)
 
+scene.background = new THREE.Color(0x2181c2);
+
 // Controls
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
