@@ -59,6 +59,8 @@ const FLOOR_Z_SIZE = 1;
 const FLOOR_X_COUNT = 10;
 const FLOOR_Y_COUNT = 10;
 
+const MAX_RADOM_POSITION_ATTEMT = 1000;
+
 const floor = new THREE.Mesh( new THREE.BoxGeometry( FLOOR_X_SIZE, 1, FLOOR_Y_SIZE ), new THREE.MeshStandardMaterial( {color: 0x996f31} ));
 floor.position.x = FLOOR_X_POSITION - (FLOOR_X_SIZE / 2);
 floor.position.z = FLOOR_Y_POSITION - (FLOOR_Y_SIZE / 2);
@@ -145,27 +147,58 @@ let apple = null;
  */
 const onDocumentKeyDown = (event) => {
     let keyCode = event.which;
-    if (keyCode == 87) {
+    if (keyCode == 87 && (snakeDirection === 2 || snakeDirection === 3)) {
         snakeDirection = 0;
-    } else if (keyCode == 83) {
+    } else if (keyCode == 83 && (snakeDirection === 2 || snakeDirection === 3)) {
         snakeDirection = 1;
-    } else if (keyCode == 68) {
+    } else if (keyCode == 68 && (snakeDirection === 0 || snakeDirection === 1)) {
        snakeDirection = 2;
-    } else if (keyCode == 65) {
+    } else if (keyCode == 65 && (snakeDirection === 0 || snakeDirection === 1)) {
         snakeDirection = 3;
     }
 };
 
 const isSnakeHeadOnApple = (snake, apple) => {
     const head = getSnakeHead(snake);
-    return head.position.x === apple.position.x
-        && head.position.y === apple.position.y
-        && head.position.z === apple.position.z;
+    return head.position.equals(apple.position);
 }
 
-const moveToRandomPosition = (apple) => {
-    apple.position.x = Math.floor(Math.random() * FLOOR_X_SIZE) - (FLOOR_X_SIZE / 2) + 0.5;
-    apple.position.z = Math.floor(Math.random() * FLOOR_Y_SIZE) - (FLOOR_Y_SIZE / 2) + 0.5;
+const isSnakeHeadOnBody = (snake) => {
+    const head = getSnakeHead(snake);
+    for (const part of snake.slice(1)) {
+        if (head.position.equals(part.position)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+const isSnakeHeadOutOfBounds = (snake) => {
+    const head = getSnakeHead(snake);
+    return head.position.x < -FLOOR_X_SIZE / 2
+     || head.position.x > FLOOR_X_SIZE / 2
+     || head.position.z < -FLOOR_Y_SIZE / 2
+     || head.position.z > FLOOR_Y_SIZE / 2;
+}
+
+const isAppleOnSnake = (apple, snake) => {
+    for (const part of snake) {
+        if (part.position.equals(apple.position)) {
+            return true;
+        }
+    }
+    return false;
+};
+
+const moveToRandomPosition = (apple, snake) => {
+    for (let i = 0; i < MAX_RADOM_POSITION_ATTEMT; i++) {
+        apple.position.x = Math.floor(Math.random() * FLOOR_X_SIZE) - (FLOOR_X_SIZE / 2) + 0.5;
+        apple.position.z = Math.floor(Math.random() * FLOOR_Y_SIZE) - (FLOOR_Y_SIZE / 2) + 0.5;
+        if (!isAppleOnSnake(apple, snake)) {
+            return;
+        }
+    }
+    console.error(`ERROR: Cannot move to random position. Failed ${MAX_RADOM_POSITION_ATTEMT} times`);
 };
 
 const moveSnake = (snake, snakeDirection) => {
@@ -174,52 +207,47 @@ const moveSnake = (snake, snakeDirection) => {
         let currPosition = snakePart.position.clone();
         if (index === 0) {
             const head = getSnakeHead(snake);
+            prevPosition = snakePart.position.clone();
             switch (snakeDirection) {
                 case 0:
-                    head.position.x += 1;
+                    prevPosition.x += 1;
                     head.rotateY(0 - head.rotation.y);
                     break;
                 case 1:
-                    head.position.x -= 1;
+                    prevPosition.x -= 1;
                     head.rotateY(Math.PI - head.rotation.y);
                     break;
                 case 2:
-                    head.position.z += 1;
+                    prevPosition.z += 1;
                     head.rotateY((-Math.PI / 2) - head.rotation.y);
                     break;
                 case 3:
-                    head.position.z -= 1;
+                    prevPosition.z -= 1;
                     head.rotateY((Math.PI / 2) - head.rotation.y);
                     break;
                 default:
                     console.warn(`Invalid snake direction '${snakeDirection}'. Should be in range [0, 3]. Skipping.`);
             }
-        } else {
-            console.log('will move ', snakePart.position, prevPosition);
-            const tween = new TWEEN.Tween(snakePart.position)
-                .to(prevPosition, moveDuration * 1000)
-                .easing(TWEEN.Easing.Quadratic.Out)
-                .onUpdate(() => {
-                    console.log('updated', snakePart.position);
-                })
-                .start()
-
-            // const tween2 = new TWEEN.Tween()
-            //     .to(prevPosition, moveDuration * 1000)
-            //     .easing(bounceBackEasing)
-            //     .onUpdate(() => {
-            //         console.log('updated', snakePart.position);
-            //     })
-            //     .start()
-            // snakePart.position.copy(prevPosition);
         }
+        new TWEEN.Tween(snakePart.position)
+            .to(prevPosition, moveDuration * 0.9 * 1000)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .start()
+
+        new TWEEN.Tween(snakePart.scale)
+            .to(new THREE.Vector3(.75, .75, .75), moveDuration * 0.9 * 1000)
+            .easing(bounceBackEasing)
+            .start();
         prevPosition = currPosition;
-    });
-    
+    });   
 };
 
 const bounceBackEasing = (k) => {
-	return Math.floor(k * 10) / 10;
+    return k === 0 
+        ? 1 
+        : k < .5 
+        ? 1 - Math.pow(2, -10 * k)
+        : Math.pow(2, -10 * k);
 };
 
 const getSnakeHead = (snake) => {
@@ -250,7 +278,10 @@ const tick = (deltaTime) => {
             let tailPosition = getSnakeTail(snake).position;
             moveSnake(snake, snakeDirection);
 
-            if (isSnakeHeadOnApple(snake, apple)) {
+            if (isSnakeHeadOnBody(snake) || isSnakeHeadOutOfBounds(snake)) {
+                alert("Game over! Game will restart.");
+                reset();
+            } else if (isSnakeHeadOnApple(snake, apple)) {
                 addSnakePart(snake, tailPosition);
                 moveToRandomPosition(apple);
             }
@@ -270,6 +301,21 @@ const tick = (deltaTime) => {
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
 };
+
+const reset = () => {
+    if (!ready(snake, apple)) {
+        return;
+    }
+    const body = snake.splice(1);
+    body.forEach(part => scene.remove(part));
+    const head = getSnakeHead(snake);
+    head.position.x = -FLOOR_X_POSITION + 0.5;
+    head.position.z = -FLOOR_Y_POSITION + 0.5;
+    head.position.y = -FLOOR_Z_POSITION + 0.5;
+    snakeDirection = 0;
+
+    moveToRandomPosition(apple);
+}
 
 const init = () => {
     document.addEventListener("keydown", onDocumentKeyDown, false);
