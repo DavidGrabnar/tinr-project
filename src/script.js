@@ -4,6 +4,8 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import * as dat from 'dat.gui'
 
+import * as TWEEN from '@tweenjs/tween.js';
+
 /**
  * Base
  */
@@ -126,13 +128,18 @@ const clock = new THREE.Clock()
  * Declarations
  */
 
-let snakeHead = null;
+// model instances
+let snakePartInstance = null;
+let appleInstance = null;
+
+// game objects
+let snake = [];
 // 0 -> +x, 1 -> -x, 2 -> +y, 3 -> -y
 let snakeDirection = 0;
 let moveDuration = .25;
 let prevMoveTime = 0;
 
-let appleInstance = null;
+let apple = null;
 /**
  * Event handlers
  */
@@ -149,60 +156,109 @@ const onDocumentKeyDown = (event) => {
     }
 };
 
-const isSnakeHeadOnApple = (snakeHead, apple) => {
-    if (snakeHead === null || apple === null) {
-        return;
-    }
-    return snakeHead.position.x === apple.position.x
-        && snakeHead.position.y === apple.position.y
-        && snakeHead.position.z === apple.position.z;
+const isSnakeHeadOnApple = (snake, apple) => {
+    const head = getSnakeHead(snake);
+    return head.position.x === apple.position.x
+        && head.position.y === apple.position.y
+        && head.position.z === apple.position.z;
 }
 
-const moveAppleToRandomPosition = (apple) => {
+const moveToRandomPosition = (apple) => {
     apple.position.x = Math.floor(Math.random() * FLOOR_X_SIZE) - (FLOOR_X_SIZE / 2) + 0.5;
     apple.position.z = Math.floor(Math.random() * FLOOR_Y_SIZE) - (FLOOR_Y_SIZE / 2) + 0.5;
 };
 
-const moveSnake = (snakeHead, snakeDirection) => {
-    if (snakeHead === null) {
-        return;
-    }
-    switch (snakeDirection) {
-        case 0:
-            snakeHead.position.x += 1;
-            snakeHead.rotateY(0 - snakeHead.rotation.y);
-            break;
-        case 1:
-            snakeHead.position.x -= 1;
-            snakeHead.rotateY(Math.PI - snakeHead.rotation.y);
-            break;
-        case 2:
-            snakeHead.position.z += 1;
-            snakeHead.rotateY((-Math.PI / 2) - snakeHead.rotation.y);
-            break;
-        case 3:
-            snakeHead.position.z -= 1;
-            snakeHead.rotateY((Math.PI / 2) - snakeHead.rotation.y);
-            break;
-        default:
-            console.warn(`Invalid snake direction '${snakeDirection}'. Should be in range [0, 3]. Skipping.`);
-    }
+const moveSnake = (snake, snakeDirection) => {
+    let prevPosition;
+    snake.forEach((snakePart, index) => {
+        let currPosition = snakePart.position.clone();
+        if (index === 0) {
+            const head = getSnakeHead(snake);
+            switch (snakeDirection) {
+                case 0:
+                    head.position.x += 1;
+                    head.rotateY(0 - head.rotation.y);
+                    break;
+                case 1:
+                    head.position.x -= 1;
+                    head.rotateY(Math.PI - head.rotation.y);
+                    break;
+                case 2:
+                    head.position.z += 1;
+                    head.rotateY((-Math.PI / 2) - head.rotation.y);
+                    break;
+                case 3:
+                    head.position.z -= 1;
+                    head.rotateY((Math.PI / 2) - head.rotation.y);
+                    break;
+                default:
+                    console.warn(`Invalid snake direction '${snakeDirection}'. Should be in range [0, 3]. Skipping.`);
+            }
+        } else {
+            console.log('will move ', snakePart.position, prevPosition);
+            const tween = new TWEEN.Tween(snakePart.position)
+                .to(prevPosition, moveDuration * 1000)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .onUpdate(() => {
+                    console.log('updated', snakePart.position);
+                })
+                .start()
+
+            // const tween2 = new TWEEN.Tween()
+            //     .to(prevPosition, moveDuration * 1000)
+            //     .easing(bounceBackEasing)
+            //     .onUpdate(() => {
+            //         console.log('updated', snakePart.position);
+            //     })
+            //     .start()
+            // snakePart.position.copy(prevPosition);
+        }
+        prevPosition = currPosition;
+    });
+    
 };
 
+const bounceBackEasing = (k) => {
+	return Math.floor(k * 10) / 10;
+};
 
-const tick = () => {
+const getSnakeHead = (snake) => {
+    return snake[0];
+};
+
+const getSnakeTail = (snake) => {
+    return snake[snake.length - 1];
+};
+
+const addSnakePart = (snake, tailPosition) => {
+    let part = snakePartInstance.clone();
+    part.position.copy(tailPosition);
+    scene.add(part);
+    snake.push(part);
+};
+
+const ready = (snake, apple) => {
+    return snake.length > 0 && !!apple;
+};
+
+const tick = (deltaTime) => {
     const currTime = clock.getElapsedTime();
 
-    // Update objects
-    if (currTime - prevMoveTime >= moveDuration) {
-        moveSnake(snakeHead, snakeDirection);
+    if (ready(snake, apple)) {
+        // Update objects
+        if (currTime - prevMoveTime >= moveDuration) {
+            let tailPosition = getSnakeTail(snake).position;
+            moveSnake(snake, snakeDirection);
 
-        if (isSnakeHeadOnApple(snakeHead, appleInstance)) {
-            moveAppleToRandomPosition(appleInstance);
+            if (isSnakeHeadOnApple(snake, apple)) {
+                addSnakePart(snake, tailPosition);
+                moveToRandomPosition(apple);
+            }
+
+            prevMoveTime = currTime;
         }
-
-        prevMoveTime = currTime;
     }
+    
 
     // Update controls
     controls.update()
@@ -210,26 +266,29 @@ const tick = () => {
     // Render
     renderer.render(scene, camera)
 
+    TWEEN.update(deltaTime);
     // Call tick again on the next frame
     window.requestAnimationFrame(tick)
-}
+};
 
 const init = () => {
     document.addEventListener("keydown", onDocumentKeyDown, false);
 
     modelLoader.load('/models/snake_body.obj', 
-        (snakeBodyPart => {
-            /**
-             * Snake
-             */
-            snakeHead = snakeBodyPart.clone();
-            snakeHead.children[0].scale.set(.5, .5, .5);
-            snakeHead.children[0].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
-            snakeHead.position.x = -FLOOR_X_POSITION + 0.5;
-            snakeHead.position.z = -FLOOR_Y_POSITION + 0.5;
-            snakeHead.position.y = -FLOOR_Z_POSITION + 0.5;
-            snakeHead.rotation.order = 'YXZ';
+        (snakePartModel => {
+            // init model instance
+            snakePartInstance = snakePartModel.clone();
+            snakePartInstance.children[0].scale.set(.5, .5, .5);
+            snakePartInstance.children[0].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
+            snakePartInstance.position.x = -FLOOR_X_POSITION + 0.5;
+            snakePartInstance.position.z = -FLOOR_Y_POSITION + 0.5;
+            snakePartInstance.position.y = -FLOOR_Z_POSITION + 0.5;
+            snakePartInstance.rotation.order = 'YXZ';
+
+            // init game object
+            let snakeHead = snakePartInstance.clone();
             scene.add(snakeHead);
+            snake.push(snakeHead);
 
             const snakeHeadPlane = new THREE.Mesh(
                 new THREE.PlaneGeometry(.8, .8), 
@@ -247,23 +306,25 @@ const init = () => {
         }
     ));
     modelLoader.load('/models/apple.obj', 
-        (apple => {
-            /**
-             * Apple
-             */
-            appleInstance = apple.clone();
+        (appleModel => {
+            // init model instance
+            appleInstance = appleModel.clone();
             appleInstance.children.forEach(c => c.scale.set(.5, .5, .5));
-            appleInstance.children[0].material =  new THREE.MeshStandardMaterial( {color: 0xeb4934});
+            appleInstance.children[0].material = new THREE.MeshStandardMaterial( {color: 0xeb4934} );
             appleInstance.children[1].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
             appleInstance.children[2].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
-            appleInstance.position.x = -FLOOR_X_POSITION + 7.5;
-            appleInstance.position.z = -FLOOR_Y_POSITION + 7.5;
+            appleInstance.position.x = -FLOOR_X_POSITION + 0.5;
+            appleInstance.position.z = -FLOOR_Y_POSITION + 0.5;
             appleInstance.position.y = -FLOOR_Z_POSITION + 0.5;
-            scene.add(appleInstance);
+
+            // init game object
+            apple = appleInstance.clone();
+            moveToRandomPosition(apple);
+            scene.add(apple);
         }
     ));
 
-    tick();
+    window.requestAnimationFrame(tick);
 };
 
 init();
