@@ -133,6 +133,7 @@ const clock = new THREE.Clock()
 // model instances
 let snakePartInstance = null;
 let appleInstance = null;
+let slopeInstance = null;
 
 // game objects
 let snake = [];
@@ -142,6 +143,11 @@ let moveDuration = .25;
 let prevMoveTime = 0;
 
 let apple = null;
+
+let slope = null;
+// 0 -> +x, 1 -> -x, 2 -> +y, 3 -> -y
+let slopeDirection = 1;
+
 /**
  * Event handlers
  */
@@ -173,6 +179,15 @@ const isSnakeHeadOnBody = (snake) => {
     return false;
 }
 
+const isSnakeHeadOnSlope = (snake, slope) => {
+    const head = getSnakeHead(snake);
+    return head.position.equals(slope.position);
+}
+
+const isSnakeHeadCrashedOnSlope = (snake, slope) => {
+    return isSnakeHeadOnSlope(snake, slope) && snakeDirection !== slopeDirection;
+}
+
 const isSnakeHeadOutOfBounds = (snake) => {
     const head = getSnakeHead(snake);
     return head.position.x < -FLOOR_X_SIZE / 2
@@ -188,7 +203,33 @@ const isAppleOnSnake = (apple, snake) => {
         }
     }
     return false;
-};
+}
+
+const isAnythingBelowSnakeHead = (snake, apple, slope) => {
+    const head = getSnakeHead(snake);
+
+    const applePos = apple.position.clone();
+    applePos.y += 1;
+    if (head.position.equals(applePos)) {
+        return true;
+    }
+
+    const slopePos = slope.position.clone();
+    slopePos.y += 1;
+    if (head.position.equals(slopePos)) {
+        return true;
+    }
+
+    for (const part of snake.slice(1)) {
+        const partPos = part.position.clone();
+        partPos.y += 1;
+        if (head.position.equals(partPos)) {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 const moveToRandomPosition = (apple, snake) => {
     for (let i = 0; i < MAX_RADOM_POSITION_ATTEMT; i++) {
@@ -228,6 +269,13 @@ const moveSnake = (snake, snakeDirection) => {
                 default:
                     console.warn(`Invalid snake direction '${snakeDirection}'. Should be in range [0, 3]. Skipping.`);
             }
+            if (isSnakeHeadOnSlope(snake, slope)) {
+                console.log('will increase');
+                prevPosition.y += 1;
+            } else if (prevPosition.y !== -FLOOR_Z_POSITION + 0.5 && !isAnythingBelowSnakeHead(snake, apple, slope)) {
+                console.log('will decrease');
+                prevPosition.y -= 1;
+            }
         }
         new TWEEN.Tween(snakePart.position)
             .to(prevPosition, moveDuration * 0.9 * 1000)
@@ -265,25 +313,25 @@ const addSnakePart = (snake, tailPosition) => {
     snake.push(part);
 };
 
-const ready = (snake, apple) => {
-    return snake.length > 0 && !!apple;
+const ready = (snake, apple, slope) => {
+    return snake.length > 0 && !!apple && !!slope;
 };
 
 const tick = (deltaTime) => {
     const currTime = clock.getElapsedTime();
 
-    if (ready(snake, apple)) {
+    if (ready(snake, apple, slope)) {
         // Update objects
         if (currTime - prevMoveTime >= moveDuration) {
             let tailPosition = getSnakeTail(snake).position;
             moveSnake(snake, snakeDirection);
 
-            if (isSnakeHeadOnBody(snake) || isSnakeHeadOutOfBounds(snake)) {
+            if (isSnakeHeadOnBody(snake) || isSnakeHeadOutOfBounds(snake) || isSnakeHeadCrashedOnSlope(snake, slope)) {
                 alert("Game over! Game will restart.");
                 reset();
             } else if (isSnakeHeadOnApple(snake, apple)) {
                 addSnakePart(snake, tailPosition);
-                moveToRandomPosition(apple);
+                moveToRandomPosition(apple, snake);
             }
 
             prevMoveTime = currTime;
@@ -303,7 +351,7 @@ const tick = (deltaTime) => {
 };
 
 const reset = () => {
-    if (!ready(snake, apple)) {
+    if (!ready(snake, apple, slope)) {
         return;
     }
     const body = snake.splice(1);
@@ -314,7 +362,7 @@ const reset = () => {
     head.position.y = -FLOOR_Z_POSITION + 0.5;
     snakeDirection = 0;
 
-    moveToRandomPosition(apple);
+    moveToRandomPosition(apple, snake);
 }
 
 const init = () => {
@@ -365,8 +413,23 @@ const init = () => {
 
             // init game object
             apple = appleInstance.clone();
-            moveToRandomPosition(apple);
+            moveToRandomPosition(apple, snake || []);
             scene.add(apple);
+        }
+    ));
+    modelLoader.load('/models/slope.obj', 
+        (slopeModel => {
+            // init model instance
+            slopeInstance = slopeModel.clone();
+            slopeInstance.children[0].scale.set(.5, .5, .5);
+            slopeInstance.children[0].material = new THREE.MeshStandardMaterial( {color: 0xb05e23} );
+            slopeInstance.position.x = -FLOOR_X_POSITION + 0.5 + 3;
+            slopeInstance.position.z = -FLOOR_Y_POSITION + 0.5 + 3;
+            slopeInstance.position.y = -FLOOR_Z_POSITION + 0.5;
+
+            // init game object
+            slope = slopeInstance.clone();
+            scene.add(slope);
         }
     ));
 
