@@ -152,6 +152,11 @@ let snakeDirection = 0;
 let moveDuration = .25;
 let prevMoveTime = 0;
 
+let cyclesPerAppleMove = 1;
+let variationCyclePerAppleMove = 0;
+
+let cyclesFromLastAppleMove = 0;
+
 let apple = null;
 
 let slope = null;
@@ -179,31 +184,29 @@ const isSnakeHeadOnApple = (snake, apple) => {
     return head.position.equals(apple.position);
 }
 
-const isSnakeHeadOnBody = (snake) => {
-    const head = getSnakeHead(snake);
+const isPositionOnSnakeBody = (position, snake) => {
     for (const part of snake.slice(1)) {
-        if (head.position.equals(part.position)) {
+        if (position.equals(part.position)) {
             return true;
         }
     }
     return false;
 }
 
-const isSnakeHeadOnSlope = (snake, slope) => {
-    const head = getSnakeHead(snake);
-    return head.position.equals(slope.position);
+const isPositionOnSlope = (position, slope) => {
+    return position.equals(slope.position);
 }
 
 const isSnakeHeadCrashedOnSlope = (snake, slope) => {
-    return isSnakeHeadOnSlope(snake, slope) && snakeDirection !== slopeDirection;
+    const head = getSnakeHead(snake);
+    return isPositionOnSlope(head.position, slope) && snakeDirection !== slopeDirection;
 }
 
-const isSnakeHeadOutOfBounds = (snake) => {
-    const head = getSnakeHead(snake);
-    return head.position.x < -FLOOR_X_SIZE / 2
-     || head.position.x > FLOOR_X_SIZE / 2
-     || head.position.z < -FLOOR_Y_SIZE / 2
-     || head.position.z > FLOOR_Y_SIZE / 2;
+const isPositionOutOfBounds = (position) => {
+    return position.x < -FLOOR_X_SIZE / 2
+     || position.x > FLOOR_X_SIZE / 2
+     || position.z < -FLOOR_Y_SIZE / 2
+     || position.z > FLOOR_Y_SIZE / 2;
 }
 
 const isAppleOnSnake = (apple, snake) => {
@@ -277,9 +280,9 @@ const moveSnake = (snake, snakeDirection) => {
                     head.rotateY((Math.PI / 2) - head.rotation.y);
                     break;
                 default:
-                    console.warn(`Invalid snake direction '${snakeDirection}'. Should be in range [0, 3]. Skipping.`);
+                    console.warn(`Invalid snake direction '${snakeDirection}'. Should be in range [0, 3]. Skipping 'moveSnake'.`);
             }
-            if (isSnakeHeadOnSlope(snake, slope)) {
+            if (isPositionOnSlope(head.position, slope)) {
                 console.log('will increase');
                 prevPosition.y += 1;
             } else if (prevPosition.y !== -FLOOR_Z_POSITION + 0.5 && !isAnythingBelowSnakeHead(snake, apple, slope)) {
@@ -316,6 +319,44 @@ const bounceBackEasing = (k) => {
         : Math.pow(2, -10 * k);
 };
 
+const moveApple = (apple, snake) => {
+    const newApplePosition = apple.position.clone();
+    const snakeHeadPosition = getSnakeHead(snake).position;
+    const diffX = newApplePosition.x - snakeHeadPosition.x;
+    const diffY = newApplePosition.z - snakeHeadPosition.z;
+
+    if (Math.abs(diffX) > Math.abs(diffY)) {
+        newApplePosition.x += diffX !== 0 ? diffX / Math.abs(diffX) : 0;
+    } else {
+        newApplePosition.z += diffY !== 0 ? diffY / Math.abs(diffY): 0;
+    }
+
+    if (isPositionOnSnakeBody(newApplePosition, snake) || isPositionOutOfBounds(newApplePosition) || isPositionOnSlope(newApplePosition, slope)) {
+        newApplePosition.copy(apple.position);
+        if (Math.abs(diffX) > Math.abs(diffY)) {
+            newApplePosition.z += diffY !== 0 ? diffY / Math.abs(diffY): 0;
+        } else {
+            newApplePosition.x += diffX !== 0 ? diffX / Math.abs(diffX) : 0;
+        }
+
+        if (isPositionOnSnakeBody(newApplePosition, snake) || isPositionOutOfBounds(newApplePosition) || isPositionOnSlope(newApplePosition, slope)) {
+            newApplePosition.copy(apple.position);
+            if (Math.abs(diffX) > Math.abs(diffY)) {
+                newApplePosition.z -= diffY !== 0 ? diffY / Math.abs(diffY): 0;
+            } else {
+                newApplePosition.x -= diffX !== 0 ? diffX / Math.abs(diffX) : 0;
+            }
+
+            if (isPositionOnSnakeBody(newApplePosition, snake) || isPositionOutOfBounds(newApplePosition) || isPositionOnSlope(newApplePosition, slope)) {
+            }
+        }
+    }
+    new TWEEN.Tween(apple.position)
+        .to(newApplePosition, moveDuration * 0.9 * 1000)
+        .easing(TWEEN.Easing.Quadratic.Out)
+        .start()
+};
+
 const getSnakeHead = (snake) => {
     return snake[0];
 };
@@ -344,7 +385,8 @@ const tick = (deltaTime) => {
             let tailPosition = getSnakeTail(snake).position;
             moveSnake(snake, snakeDirection);
 
-            if (isSnakeHeadOnBody(snake) || isSnakeHeadOutOfBounds(snake) || isSnakeHeadCrashedOnSlope(snake, slope)) {
+            const head = getSnakeHead(snake);
+            if (isPositionOnSnakeBody(head.position, snake) || isPositionOutOfBounds(head.position) || isSnakeHeadCrashedOnSlope(snake, slope)) {
                 if (failSound.sourceType !== 'empty') {
                     if (failSound.isPlaying) {
                         failSound.stop();
@@ -364,6 +406,12 @@ const tick = (deltaTime) => {
                 }
                 addSnakePart(snake, tailPosition);
                 moveToRandomPosition(apple, snake);
+            } else {
+                cyclesFromLastAppleMove += cyclesPerAppleMove;
+                if (cyclesFromLastAppleMove >= cyclesPerAppleMove) {
+                    moveApple(apple, snake);
+                    cyclesFromLastAppleMove = 0;
+                }
             }
 
             prevMoveTime = currTime;
