@@ -1,4 +1,6 @@
-import './style.css'
+import 'bootstrap';
+import "./scss/index.scss";
+import './style.css';
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';

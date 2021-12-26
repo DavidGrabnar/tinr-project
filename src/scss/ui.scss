@@ -1,0 +1,49 @@
+﻿$grey: #83838370;
+
+body {
+  width: 100vw;
+  height: 100vh;
+}
+
+.interface {
+  &-wrapper {
+    pointer-events: none;
+  }
+  &-card {
+    background-color: $grey;
+  }
+  &-title {
+    color: white;
+    font-size: 2rem;
+    border-bottom: 1px solid white;
+    margin-bottom: 1rem;
+  }
+  &-button {
+    pointer-events: all;
+    color: white;
+    border: 1px solid white;
+    margin-bottom: 0.5rem;
+
+    &:hover {
+      color: grey;
+    }
+
+    &-item:not(:last-child) {
+      margin-right: 0.5rem;
+    }
+  }
+
+  &-input {
+    pointer-events: all;
+    background-color: transparent;
+    margin-bottom: 0.5rem;
+    color: white;
+
+    &:focus {
+      background-color: transparent;
+      border-color: grey;
+      box-shadow: 0 0 0 0.25rem grey;
+      color: white;
+    }
+  }
+}
