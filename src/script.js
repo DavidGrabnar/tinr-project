@@ -20,6 +20,14 @@ const appleFaceTexture = textureLoader.load('/textures/shiny-apple.png');
 // Models
 const modelLoader = new OBJLoader();
 
+// Audio
+const listener = new THREE.AudioListener();
+const moveSound = new THREE.Audio(listener);
+const eatSound = new THREE.Audio(listener);
+const failSound = new THREE.Audio(listener);
+
+const audioLoader = new THREE.AudioLoader();
+
 // Canvas
 const canvas = document.querySelector('canvas.webgl')
 
@@ -286,6 +294,14 @@ const moveSnake = (snake, snakeDirection) => {
             .to(new THREE.Vector3(.75, .75, .75), moveDuration * 0.9 * 1000)
             .easing(bounceBackEasing)
             .start();
+
+        if (moveSound.sourceType !== 'empty') {
+            if (moveSound.isPlaying) {
+                moveSound.stop();
+                moveSound.currentTime = 0;
+            }
+            moveSound.play();
+        }
         prevPosition = currPosition;
     });   
 };
@@ -327,9 +343,23 @@ const tick = (deltaTime) => {
             moveSnake(snake, snakeDirection);
 
             if (isSnakeHeadOnBody(snake) || isSnakeHeadOutOfBounds(snake) || isSnakeHeadCrashedOnSlope(snake, slope)) {
+                if (failSound.sourceType !== 'empty') {
+                    if (failSound.isPlaying) {
+                        failSound.stop();
+                        failSound.currentTime = 0;
+                    }
+                    failSound.play();
+                }
                 alert("Game over! Game will restart.");
                 reset();
             } else if (isSnakeHeadOnApple(snake, apple)) {
+                if (eatSound.sourceType !== 'empty') {
+                    if (eatSound.isPlaying) {
+                        eatSound.stop();
+                        eatSound.currentTime = 0;
+                    }
+                    eatSound.play();
+                }
                 addSnakePart(snake, tailPosition);
                 moveToRandomPosition(apple, snake);
             }
@@ -432,6 +462,27 @@ const init = () => {
             scene.add(slope);
         }
     ));
+
+    audioLoader.load('/audios/blip.mp3',
+        (buffer) => {
+            moveSound.setBuffer(buffer);
+            moveSound.setVolume(0.5);
+        }
+    );
+
+    audioLoader.load('/audios/punch.mp3',
+        (buffer) => {
+            eatSound.setBuffer(buffer);
+            eatSound.setVolume(0.5);
+        }
+    );
+
+    audioLoader.load('/audios/fail.mp3',
+        (buffer) => {
+            failSound.setBuffer(buffer);
+            failSound.setVolume(0.5);
+        }
+    );
 
     window.requestAnimationFrame(tick);
 };
