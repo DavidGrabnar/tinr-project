@@ -490,3 +490,33 @@ const init = () => {
 };
 
 init();
+
+// UI
+let currentView = 'main';
+let prevView = 'main';
+
+const changeViewTo = (viewId)  => {
+    const newView = document.getElementById(viewId);
+    if (!newView) {
+        console.warn(`New view with id '${viewId}' not found!`);
+        return;
+    }
+    const currView = document.getElementById(currentView);
+    if (!currView) {
+        console.error(`Current view with id '${currentView}' not found!`);
+    }
+    console.log(viewId, currentView, prevView);
+    currView.classList.remove('d-flex');
+    currView.classList.add('d-none');
+    newView.classList.add('d-flex');
+    newView.classList.remove('d-none');
+    prevView = currentView;
+    currentView = viewId;
+};
+
+const changeViewToPrev = () => {
+    changeViewTo(prevView);
+};
+
+window.changeViewTo = changeViewTo;
+window.changeViewToPrev = changeViewToPrev;
