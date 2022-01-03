@@ -11,6 +11,13 @@ body {
   }
   &-card {
     background-color: $grey;
+
+    &.large {
+      width: 30rem;
+    }
+  }
+  &-text {
+    color: white;
   }
   &-title {
     color: white;
@@ -20,6 +27,7 @@ body {
   }
   &-button {
     pointer-events: all;
+    cursor: pointer;
     color: white;
     border: 1px solid white;
     margin-bottom: 0.5rem;
@@ -32,7 +40,14 @@ body {
       margin-right: 0.5rem;
     }
   }
+  &-icon-button {
+    pointer-events: all;
+    cursor: pointer;
 
+    &:hover {
+      color: grey;
+    }
+  }
   &-input {
     pointer-events: all;
     background-color: transparent;
@@ -45,5 +60,14 @@ body {
       box-shadow: 0 0 0 0.25rem grey;
       color: white;
     }
+  }
+
+  &-table-header {
+    padding-bottom: 1rem;
+    border-bottom: 1px solid white;
+  }
+
+  &-hidden {
+    display: none !important;
   }
 }

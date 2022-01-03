@@ -87,6 +87,8 @@ const sizes = {
 
 const scale = 7.5;
 
+let start = false;
+
 window.addEventListener('resize', () =>
 {
     // Update sizes
@@ -116,7 +118,8 @@ camera.position.y = 100
 camera.position.z = -100
 scene.add(camera)
 
-scene.background = new THREE.Color(0x2181c2);
+const backgroundColor = 0x2181c2;
+scene.background = new THREE.Color(backgroundColor);
 
 // Controls
 const controls = new OrbitControls(camera, canvas)
@@ -379,7 +382,7 @@ const ready = (snake, apple, slope) => {
 const tick = (deltaTime) => {
     const currTime = clock.getElapsedTime();
 
-    if (ready(snake, apple, slope)) {
+    if (start && ready(snake, apple, slope)) {
         // Update objects
         if (currTime - prevMoveTime >= moveDuration) {
             let tailPosition = getSnakeTail(snake).position;
@@ -394,8 +397,10 @@ const tick = (deltaTime) => {
                     }
                     failSound.play();
                 }
-                alert("Game over! Game will restart.");
-                reset();
+                
+                changeInterfaceVisiblity(true);
+                changeViewTo('game-over');
+                start = false;
             } else if (isSnakeHeadOnApple(snake, apple)) {
                 if (eatSound.sourceType !== 'empty') {
                     if (eatSound.isPlaying) {
@@ -562,9 +567,37 @@ const changeViewTo = (viewId)  => {
     currentView = viewId;
 };
 
+const changeInterfaceVisiblity = (visible) => {
+    if (visible) {
+        document.getElementById('interface').classList.remove('interface-hidden');
+    } else {
+        document.getElementById('interface').classList.add('interface-hidden');
+    }
+}
+
 const changeViewToPrev = () => {
     changeViewTo(prevView);
 };
 
+const onStart = () => {
+    changeInterfaceVisiblity(false);
+    reset();
+    start = true;
+};
+
+window.addEventListener("load", () => {
+    const backgroundColorInput = document.getElementById('inputBackgroundColor');
+    backgroundColorInput.value = `#${backgroundColor.toString(16)}`;
+
+    backgroundColorInput.addEventListener(
+        "input", 
+        (e) => 
+            scene.background = new THREE.Color(parseInt(e.target.value.replace('#', ''), 16)), 
+        false
+    );
+
+}, false);
+
 window.changeViewTo = changeViewTo;
 window.changeViewToPrev = changeViewToPrev;
+window.onStart = onStart;
