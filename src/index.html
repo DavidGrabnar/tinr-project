@@ -114,14 +114,14 @@
         <div id="options" class="d-none flex-column text-center p-3 interface-card large">
             <div class="interface-title text-uppercase">Options</div>
             <div class="d-flex flex-row py-2">
-                <div class="interface-text col-6 text-start">Cycle duration (0.25)</div>
+                <div class="interface-text col-6 text-start">Cycle duration (<span id="labelMoveDuration"></span>)</div>
                 <div class="interface-text col-1 text-start">0.10</div>
-                <div class="interface-text col-4 text-center"><input type="range" min="0.1" max="1" value="0.25" step="0.01" class="interface-input interface-input-slider"></div>
+                <div class="interface-text col-4 text-center"><input id="inputMoveDuration" type="range" min="0.1" max="1" value="0.25" step="0.01" class="interface-input interface-input-slider"></div>
                 <div class="interface-text col-1 text-start">1.00</div>
             </div>
             <div class="d-flex flex-row py-2">
                 <div class="interface-text col-6 text-start">Background color</div>
-                <div class="interface-text col-6 text-center"><input type="color" class="interface-input" id="inputBackgroundColor" onchange="changeBackgroundColor"></div>
+                <div class="interface-text col-6 text-center"><input type="color" class="interface-input" id="inputBackgroundColor"></div>
             </div>
             <div class="btn interface-button" onclick="changeViewTo('main')">Back</div>
         </div>

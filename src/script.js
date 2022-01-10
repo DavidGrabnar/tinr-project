@@ -78,6 +78,48 @@ floor.position.y = FLOOR_Z_POSITION - (FLOOR_Z_SIZE / 2);
 scene.add( floor );
 
 /**
+ * Settings
+ */
+const defaultSettings = {
+    backgroundColor: 0x2181c2,
+    moveDuration: .25,
+};
+
+const settings = {
+    backgroundColor: defaultSettings.backgroundColor,
+    moveDuration: defaultSettings.moveDuration,
+};
+
+const loadSettings = () => {
+    Object.entries(settings).forEach(([key]) => {
+        const storageKey = `setting-${key}`;
+        let value = JSON.parse(localStorage.getItem(storageKey));
+        if (!value) {
+            console.log('loading default setting', key, defaultSettings[key]);
+            value = defaultSettings[key];
+        }
+        console.log('updating setting', key, defaultSettings[key]);
+        updateSetting(key, value);
+    });
+};
+
+const updateSetting = (key, value) => {
+    console.log('update setting', key, value);
+    settings[key] = value;
+    const storageKey = `setting-${key}`;
+    localStorage.setItem(storageKey, JSON.stringify(value));
+    switch(key) {
+        case 'backgroundColor':
+            scene.background = new THREE.Color(value);
+            break;
+        case 'moveDuration':
+            document.getElementById('inputMoveDuration').value = String(value);
+            document.getElementById('labelMoveDuration').innerText = value.toFixed(2);
+            break;
+    }
+};
+
+/**
  * Sizes
  */
 const sizes = {
@@ -118,9 +160,6 @@ camera.position.y = 100
 camera.position.z = -100
 scene.add(camera)
 
-const backgroundColor = 0x2181c2;
-scene.background = new THREE.Color(backgroundColor);
-
 // Controls
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
@@ -152,7 +191,6 @@ let slopeInstance = null;
 let snake = [];
 // 0 -> +x, 1 -> -x, 2 -> +y, 3 -> -y
 let snakeDirection = 0;
-let moveDuration = .25;
 let prevMoveTime = 0;
 
 let cyclesPerAppleMove = 1;
@@ -294,12 +332,12 @@ const moveSnake = (snake, snakeDirection) => {
             }
         }
         new TWEEN.Tween(snakePart.position)
-            .to(prevPosition, moveDuration * 0.9 * 1000)
+            .to(prevPosition, settings.moveDuration * 0.9 * 1000)
             .easing(TWEEN.Easing.Quadratic.Out)
             .start()
 
         new TWEEN.Tween(snakePart.scale)
-            .to(new THREE.Vector3(.75, .75, .75), moveDuration * 0.9 * 1000)
+            .to(new THREE.Vector3(.75, .75, .75), settings.moveDuration * 0.9 * 1000)
             .easing(bounceBackEasing)
             .start();
 
@@ -355,7 +393,7 @@ const moveApple = (apple, snake) => {
         }
     }
     new TWEEN.Tween(apple.position)
-        .to(newApplePosition, moveDuration * 0.9 * 1000)
+        .to(newApplePosition, settings.moveDuration * 0.9 * 1000)
         .easing(TWEEN.Easing.Quadratic.Out)
         .start()
 };
@@ -384,7 +422,7 @@ const tick = (deltaTime) => {
 
     if (start && ready(snake, apple, slope)) {
         // Update objects
-        if (currTime - prevMoveTime >= moveDuration) {
+        if (currTime - prevMoveTime >= settings.moveDuration) {
             let tailPosition = getSnakeTail(snake).position;
             moveSnake(snake, snakeDirection);
 
@@ -451,6 +489,7 @@ const reset = () => {
 }
 
 const init = () => {
+    loadSettings();
     document.addEventListener("keydown", onDocumentKeyDown, false);
 
     modelLoader.load('/models/snake_body.obj', 
@@ -587,12 +626,22 @@ const onStart = () => {
 
 window.addEventListener("load", () => {
     const backgroundColorInput = document.getElementById('inputBackgroundColor');
-    backgroundColorInput.value = `#${backgroundColor.toString(16)}`;
+    backgroundColorInput.value = `#${settings.backgroundColor.toString(16)}`;
 
     backgroundColorInput.addEventListener(
         "input", 
         (e) => 
-            scene.background = new THREE.Color(parseInt(e.target.value.replace('#', ''), 16)), 
+            updateSetting('backgroundColor', parseInt(e.target.value.replace('#', ''), 16)), 
+        false
+    );
+
+    const moveDurationInput = document.getElementById('inputMoveDuration');
+    moveDurationInput.value = String(settings.moveDuration);
+
+    moveDurationInput.addEventListener(
+        "input", 
+        (e) => 
+            updateSetting('moveDuration', parseFloat(e.target.value)),
         false
     );
 
