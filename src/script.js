@@ -541,12 +541,12 @@ const init = () => {
             scene.add(apple);
         }
     ));
-    modelLoader.load('/models/slope.obj', 
+    modelLoader.load('/models/slope_2.obj', 
         (slopeModel => {
             // init model instance
             slopeInstance = slopeModel.clone();
-            slopeInstance.children[0].scale.set(.5, .5, .5);
-            slopeInstance.children[0].material = new THREE.MeshStandardMaterial( {color: 0xb05e23} );
+            slopeInstance.children.forEach(c => c.scale.set(.5, .5, .5));
+            slopeInstance.children.forEach(c => c.material = new THREE.MeshStandardMaterial( {color: 0x8b4ee6} ));
             slopeInstance.position.x = -FLOOR_X_POSITION + 0.5 + 3;
             slopeInstance.position.z = -FLOOR_Y_POSITION + 0.5 + 3;
             slopeInstance.position.y = -FLOOR_Z_POSITION + 0.5;
