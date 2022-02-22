@@ -46,6 +46,8 @@ const light = new THREE.DirectionalLight(0xffffff, 0.4)
 light.position.x = 100
 light.position.y = 100
 light.position.z = 0
+light.castShadow = true
+light.shadow.radius = 2;
 scene.add(light)
 
 /**
@@ -75,6 +77,7 @@ const floor = new THREE.Mesh( new THREE.BoxGeometry( FLOOR_X_SIZE, 1, FLOOR_Y_SI
 floor.position.x = FLOOR_X_POSITION - (FLOOR_X_SIZE / 2);
 floor.position.z = FLOOR_Y_POSITION - (FLOOR_Y_SIZE / 2);
 floor.position.y = FLOOR_Z_POSITION - (FLOOR_Z_SIZE / 2);
+floor.receiveShadow = true;
 scene.add( floor );
 
 /**
@@ -172,6 +175,8 @@ const renderer = new THREE.WebGLRenderer({
 })
 renderer.setSize(sizes.width, sizes.height)
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+renderer.shadowMap.enabled = true
+renderer.type = THREE.PCFSoftShadowMap
 
 /**
  * Animate
@@ -498,6 +503,7 @@ const init = () => {
             snakePartInstance = snakePartModel.clone();
             snakePartInstance.children[0].scale.set(.5, .5, .5);
             snakePartInstance.children[0].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
+            snakePartInstance.children.forEach(c => c.castShadow = true);
             snakePartInstance.position.x = -FLOOR_X_POSITION + 0.5;
             snakePartInstance.position.z = -FLOOR_Y_POSITION + 0.5;
             snakePartInstance.position.y = -FLOOR_Z_POSITION + 0.5;
@@ -531,6 +537,7 @@ const init = () => {
             appleInstance.children[0].material = new THREE.MeshStandardMaterial( {color: 0xeb4934} );
             appleInstance.children[1].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
             appleInstance.children[2].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
+            appleInstance.children.forEach(c => c.castShadow = true);
             appleInstance.position.x = -FLOOR_X_POSITION + 0.5;
             appleInstance.position.z = -FLOOR_Y_POSITION + 0.5;
             appleInstance.position.y = -FLOOR_Z_POSITION + 0.5;
@@ -547,6 +554,7 @@ const init = () => {
             slopeInstance = slopeModel.clone();
             slopeInstance.children.forEach(c => c.scale.set(.5, .5, .5));
             slopeInstance.children.forEach(c => c.material = new THREE.MeshStandardMaterial( {color: 0x8b4ee6} ));
+            slopeInstance.children.forEach(c => c.castShadow = true);
             slopeInstance.position.x = -FLOOR_X_POSITION + 0.5 + 3;
             slopeInstance.position.z = -FLOOR_Y_POSITION + 0.5 + 3;
             slopeInstance.position.y = -FLOOR_Z_POSITION + 0.5;
