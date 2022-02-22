@@ -42,10 +42,10 @@ const scene = new THREE.Scene()
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
 scene.add(ambientLight)
 
-const light = new THREE.PointLight(0xffffff, 0.5)
-light.position.x = 2
-light.position.y = 3
-light.position.z = 4
+const light = new THREE.DirectionalLight(0xffffff, 0.4)
+light.position.x = 100
+light.position.y = 100
+light.position.z = 0
 scene.add(light)
 
 /**
