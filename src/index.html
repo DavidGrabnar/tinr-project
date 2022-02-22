@@ -13,6 +13,7 @@
             <div class="btn interface-button" onclick="changeViewTo('game-list')">Start</div>
             <div class="btn interface-button" onclick="changeViewTo('options')">Options</div>
             <div class="btn interface-button" onclick="changeViewTo('statistics')">Statistics</div>
+            <div class="btn interface-button" onclick="changeViewTo('credits')">Credits</div>
         </div>
         <div id="game-list" class="d-none flex-column text-center p-3 interface-card">
             <div class="interface-title text-uppercase">Games</div>
@@ -169,6 +170,17 @@
                 </div>
             </div>
             <div class="btn interface-button" onclick="changeViewTo('snake-levels')">Back</div>
+        </div>
+        <div id="credits" class="d-none flex-column text-center p-3 interface-card large">
+            <div class="interface-title text-uppercase">Credits</div>
+            <div class="interface-text text-start interface-table-header">Made with&nbsp;<a class="interface-link" href="https://threejs.org">Three.js</a></div>
+            <div class="d-flex flex-column py-2">
+                <div class="d-flex interface-text text-start">Sounds from&nbsp;<a class="interface-link" href="https://mixkit.co/free-sound-effects/game/">Mixkit</a></div>
+                <div class="interface-text text-start"> - blip.mp3 (Player jumping in a video game)</div>
+                <div class="interface-text text-start"> - fail.mp3 (Player losing or failing)</div>
+                <div class="interface-text text-start"> - punch.mp3 (Martial arts punch)</div>
+            </div>
+            <div class="btn interface-button" onclick="changeViewTo('main')">Back</div>
         </div>
         <div id="game-over" class="d-none flex-column text-center p-3 interface-card">
             <div class="interface-title text-uppercase">Game over!</div>

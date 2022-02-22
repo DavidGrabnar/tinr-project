@@ -25,6 +25,10 @@ body {
     border-bottom: 1px solid white;
     margin-bottom: 1rem;
   }
+  &-link {
+    pointer-events: all;
+    cursor: pointer;
+  }
   &-button {
     pointer-events: all;
     cursor: pointer;
