@@ -22,6 +22,7 @@
         </div>
         <div id="snake-levels" class="d-none flex-column text-center p-3 interface-card">
             <div class="interface-title text-uppercase">Games</div>
+            <div class="btn interface-button" onclick="changeViewTo('snake-controls')">Controls</div>
             <div class="d-flex flex-row">
                 <div class="btn interface-button interface-button-item" onclick="changeViewTo('name-prompt')">1</div>
                 <div class="btn interface-button interface-button-item">2</div>
@@ -124,6 +125,50 @@
                 <div class="interface-text col-6 text-center"><input type="color" class="interface-input" id="inputBackgroundColor"></div>
             </div>
             <div class="btn interface-button" onclick="changeViewTo('main')">Back</div>
+        </div>
+        <div id="snake-controls" class="d-none flex-column text-center p-3 interface-card large">
+            <div class="interface-title text-uppercase">Controls</div>
+            <div class="d-flex flex-column py-2">
+                <div class="interface-text">
+                    You are a snake in a field and your goal is to survive.<br/>
+                    Eat all the food you find.<br/>
+                    There might be obstacles in the way. Some of them can be tackled, but some should be avoided.<br/>
+                    Have we mentioned that food can move? Just keep that in mind.
+                    <br/><br/>
+                    But watch out to not fall over the edge of the field, since the field floats in the air.<br/>
+                    Something we forgot to mention before.<br/>
+                    Also, you are a very hungry snake, don't mistake your tail for an apple. Hunger makes you color blind, they say.
+                    <br/><br/>
+                    You are very hungry, so you are constantly on the move. You can use W/A/S/D or arrow keys to change direction.
+                    <br/><br/>
+                </div>
+                <div class="d-flex justify-content-center align-items-center">
+                    <div class="d-flex flex-column">
+                        <div class="d-flex justify-content-center">
+                            <div class="btn interface-button interface-button-item">W</div>
+                        </div>
+                        <div class="d-flex flex-row justify-content-center">
+                            <div class="btn interface-button interface-button-item">A</div>
+                            <div class="btn interface-button interface-button-item">S</div>
+                            <div class="btn interface-button interface-button-item">D</div>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-column">
+                        <div class="interface-text px-3">OR</div>
+                    </div>
+                    <div class="d-flex flex-column">
+                    <div class="d-flex justify-content-center">
+                        <div class="btn interface-button interface-button-item">&uarr;</div>
+                    </div>
+                    <div class="d-flex flex-row justify-content-center">
+                        <div class="btn interface-button interface-button-item">&larr;</div>
+                        <div class="btn interface-button interface-button-item">&darr;</div>
+                        <div class="btn interface-button interface-button-item">&rarr;</div>
+                    </div>
+                </div>
+                </div>
+            </div>
+            <div class="btn interface-button" onclick="changeViewTo('snake-levels')">Back</div>
         </div>
         <div id="game-over" class="d-none flex-column text-center p-3 interface-card">
             <div class="interface-title text-uppercase">Game over!</div>
