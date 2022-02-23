@@ -8,6 +8,18 @@ import * as dat from 'dat.gui'
 
 import * as TWEEN from '@tweenjs/tween.js';
 
+import axios from 'axios';
+import { cloneUniforms } from 'three';
+
+const BASE_URL = 'https://9dhnedfh4h.execute-api.eu-central-1.amazonaws.com/dev';
+
+let username = null;
+let startTime = new Date();
+let endTime = null;
+let currLevel = 1;
+let finished = true;
+let collected = 0;
+
 /**
  * Base
  */
@@ -441,6 +453,9 @@ const tick = (deltaTime) => {
                     failSound.play();
                 }
                 
+                finished = true; // TODO change to 0 when win is implemented
+                endTime = new Date();
+                submitResults();
                 changeInterfaceVisiblity(true);
                 changeViewTo('game-over');
                 start = false;
@@ -452,6 +467,7 @@ const tick = (deltaTime) => {
                     }
                     eatSound.play();
                 }
+                collected++;
                 addSnakePart(snake, tailPosition);
                 moveToRandomPosition(apple, snake);
             } else {
@@ -591,8 +607,33 @@ const init = () => {
 
 init();
 
+// meta
+
+const submitResults = async () => {
+    try {
+        const response = await axios.post(`${BASE_URL}/submit`, {
+            username,
+            level: currLevel,
+            finished,
+            elapsed: (endTime - startTime) / 1000,
+            collected
+        });
+        console.info(response);
+    } catch (e) {
+        console.error(e);
+    }
+};
+
+const getLeaderboard = async () => {
+    try {
+        const response = await axios.get(`${BASE_URL}/leaderboard-weekly`);
+        return response.data.leaderboard;
+    } catch (e) {
+        console.error(e);
+    }
+};
+
 // UI
-let username = null;
 let currentView = 'landing';
 let prevView = 'landing';
 
@@ -613,6 +654,9 @@ const changeViewTo = (viewId)  => {
     newView.classList.remove('d-none');
     prevView = currentView;
     currentView = viewId;
+    if (viewId === 'leaderboard') {
+        provideLeaderboard();
+    }
 };
 
 const changeInterfaceVisiblity = (visible) => {
@@ -631,6 +675,32 @@ const onStart = () => {
     changeInterfaceVisiblity(false);
     reset();
     start = true;
+};
+
+const provideLeaderboard = async () => {
+    const progress = document.getElementById('leaderboard-progress');
+    progress.classList.remove('d-none');
+    progress.classList.add('d-block');
+
+    const leaderboard = await getLeaderboard();
+
+    const sample = document.getElementsByClassName('leaderboard-sample')[0];
+    const wrapper = document.getElementById('leaderboard-entries');
+    while (wrapper.firstChild) {
+        wrapper.removeChild(wrapper.firstChild);
+    }
+    leaderboard.forEach(user => {
+        const clone = sample.cloneNode(true);
+        clone.getElementsByClassName('leaderboard-name')[0].innerText = user.name;
+        clone.getElementsByClassName('leaderboard-total')[0].innerText = user.scores.reduce((t, s) => t + s.value, 0);
+        clone.classList.remove('d-none');
+        clone.classList.add('d-flex');
+
+        wrapper.appendChild(clone);
+    });
+
+    progress.classList.remove('d-block');
+    progress.classList.add('d-none');
 };
 
 const onEnter = () => {

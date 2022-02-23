@@ -35,7 +35,7 @@
             <div class="interface-title text-uppercase">Games</div>
             <div class="btn interface-button" onclick="changeViewTo('snake-controls')">Controls</div>
             <div class="d-flex flex-row">
-                <div class="btn interface-button interface-button-item" onclick="changeViewTo('name-prompt')">1</div>
+                <div class="btn interface-button interface-button-item" onclick="onStart()">1</div>
                 <div class="btn interface-button interface-button-item">2</div>
                 <div class="btn interface-button interface-button-item">3</div>
             </div>
@@ -165,18 +165,14 @@
                 <div class="interface-text col-8 text-start">Name</div>
                 <div class="interface-text col-4 text-end">Total</div>
             </div>
-            <div class="d-flex flex-row py-2">
-                <div class="interface-text col-8 text-start">Janez</div>
-                <div class="interface-text col-4 text-end">121</div>
+            <div class="d-none flex-row py-2 leaderboard-sample">
+                <div class="interface-text col-8 text-start leaderboard-name">Janez</div>
+                <div class="interface-text col-4 text-end leaderboard-total">121</div>
             </div>
-            <div class="d-flex flex-row py-2">
-                <div class="interface-text col-8 text-start">Micka</div>
-                <div class="interface-text col-4 text-end">40</div>
+            <div id="leaderboard-progress" class="d-block interface-progress">
+                <span>&#10227;</span>
             </div>
-            <div class="d-flex flex-row py-2 mb-3">
-                <div class="interface-text col-8 text-start">Franci</div>
-                <div class="interface-text col-4 text-end">53</div>
-            </div>
+            <div id="leaderboard-entries"></div>
             <div class="btn interface-button" onclick="changeViewToPrev()">Back</div>
         </div>
         <div id="credits" class="d-none flex-column text-center p-3 interface-card large">
