@@ -592,8 +592,9 @@ const init = () => {
 init();
 
 // UI
-let currentView = 'main';
-let prevView = 'main';
+let username = null;
+let currentView = 'landing';
+let prevView = 'landing';
 
 const changeViewTo = (viewId)  => {
     const newView = document.getElementById(viewId);
@@ -632,6 +633,22 @@ const onStart = () => {
     start = true;
 };
 
+const onEnter = () => {
+    username = document.getElementById('inputName').value;
+    if (!username) {
+        username = `guest-${Math.floor(Math.random() * 8999 + 1000)}`;
+    }
+    document.getElementById('labelName').innerText = username;
+    changeViewTo('main');
+};
+
+const onLogout = () => {
+    username = '';
+    document.getElementById('inputName').value = '';
+    document.getElementById('labelName').innerText = username;
+    changeViewTo('landing');
+};
+
 window.addEventListener("load", () => {
     const backgroundColorInput = document.getElementById('inputBackgroundColor');
     backgroundColorInput.value = `#${settings.backgroundColor.toString(16)}`;
@@ -658,3 +675,5 @@ window.addEventListener("load", () => {
 window.changeViewTo = changeViewTo;
 window.changeViewToPrev = changeViewToPrev;
 window.onStart = onStart;
+window.onEnter = onEnter;
+window.onLogout = onLogout;

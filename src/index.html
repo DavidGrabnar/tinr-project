@@ -8,12 +8,22 @@
 <body>
     <canvas class="webgl"></canvas>
     <div id="interface" class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center interface-wrapper">
-        <div id="main" class="d-flex flex-column text-center p-3 interface-card">
+        <div id="landing" class="d-flex flex-column text-center p-3 interface-card">
             <div class="interface-title text-uppercase">Arcadia</div>
-            <div class="btn interface-button" onclick="changeViewTo('game-list')">Start</div>
-            <div class="btn interface-button" onclick="changeViewTo('options')">Options</div>
-            <div class="btn interface-button" onclick="changeViewTo('statistics')">Statistics</div>
+            <input class="form-control interface-input" placeholder="Enter name..." id="inputName">
+            <div class="btn interface-button" onclick="onEnter()">Enter</div>
+            <div class="btn interface-button" onclick="changeViewTo('leaderboard')">Leaderboard</div>
             <div class="btn interface-button" onclick="changeViewTo('credits')">Credits</div>
+        </div>
+        <div id="main" class="d-none flex-column text-center p-3 interface-card">
+            <div class="interface-title text-uppercase">Arcadia</div>
+            <div class="interface-subtitle text-start">Welcome: <span id="labelName"></span></div>
+            <div class="btn interface-button" onclick="changeViewTo('game-list')">Start</div>
+            <div class="btn interface-button" onclick="changeViewTo('settings')">Settings</div>
+            <div class="btn interface-button" onclick="changeViewTo('statistics')">Statistics</div>
+            <div class="btn interface-button" onclick="changeViewTo('leaderboard')">Leaderboard</div>
+            <div class="btn interface-button" onclick="changeViewTo('credits')">Credits</div>
+            <div class="btn interface-button" onclick="onLogout()">Logout</div>
         </div>
         <div id="game-list" class="d-none flex-column text-center p-3 interface-card">
             <div class="interface-title text-uppercase">Games</div>
@@ -36,38 +46,8 @@
             </div>
             <div class="btn interface-button" onclick="changeViewTo('game-list')">Back</div>
         </div>
-        <div id="name-prompt" class="d-none flex-column text-center p-3 interface-card">
-            <div class="interface-title text-uppercase">Enter name</div>
-            <input class="form-control interface-input" id="name">
-            <div class="btn interface-button" onclick="onStart()">Start</div>
-            <div class="btn interface-button" onclick="changeViewTo('snake-levels')">Back</div>
-        </div>
         <div id="statistics" class="d-none flex-column text-center p-3 interface-card large">
             <div class="interface-title text-uppercase">Statistics</div>
-            <div class="d-flex flex-row interface-table-header">
-                <div class="interface-text col-6 text-start">Name</div>
-                <div class="interface-text col-4 text-start">Total</div>
-                <div class="interface-text col-2">Details</div>
-            </div>
-            <div class="d-flex flex-row py-2">
-                <div class="interface-text col-6 text-start">Janez</div>
-                <div class="interface-text col-4 text-start">121</div>
-                <div class="interface-text interface-icon-button col-2" onclick="changeViewTo('statistics-user-details')">&#9432;</div>
-            </div>
-            <div class="d-flex flex-row py-2">
-                <div class="interface-text col-6 text-start">Micka</div>
-                <div class="interface-text col-4 text-start">40</div>
-                <div class="interface-text interface-icon-button col-2" onclick="changeViewTo('statistics-user-details')">&#9432;</div>
-            </div>
-            <div class="d-flex flex-row py-2 mb-3">
-                <div class="interface-text col-6 text-start">Franci</div>
-                <div class="interface-text col-4 text-start">53</div>
-                <div class="interface-text interface-icon-button col-2" onclick="changeViewTo('statistics-user-details')">&#9432;</div>
-            </div>
-            <div class="btn interface-button" onclick="changeViewTo('main')">Back</div>
-        </div>
-        <div id="statistics-user-details" class="d-none flex-column text-center p-3 interface-card large">
-            <div class="interface-title text-uppercase">Statistics: Janez</div>
             <div class="d-flex flex-row interface-table-header">
                 <div class="interface-text col-6 text-start">Game</div>
                 <div class="interface-text col-4 text-start">Total</div>
@@ -83,7 +63,7 @@
                 <div class="interface-text col-4 text-start">76</div>
                 <div class="interface-text interface-icon-button col-2" onclick="changeViewTo('statistics-game-details')">&#9432;</div>
             </div>
-            <div class="btn interface-button" onclick="changeViewTo('statistics')">Back</div>
+            <div class="btn interface-button" onclick="changeViewTo('main')">Back</div>
         </div>
         <div id="statistics-game-details" class="d-none flex-column text-center p-3 interface-card large">
             <div class="interface-title text-uppercase">Statistics: Janez: Snake</div>
@@ -111,10 +91,10 @@
                 <div class="interface-text col-3 text-start">7:06</div>
                 <div class="interface-text col-3 text-start">20</div>
             </div>
-            <div class="btn interface-button" onclick="changeViewTo('statistics-user-details')">Back</div>
+            <div class="btn interface-button" onclick="changeViewTo('statistics')">Back</div>
         </div>
-        <div id="options" class="d-none flex-column text-center p-3 interface-card large">
-            <div class="interface-title text-uppercase">Options</div>
+        <div id="settings" class="d-none flex-column text-center p-3 interface-card large">
+            <div class="interface-title text-uppercase">Settings</div>
             <div class="d-flex flex-row py-2">
                 <div class="interface-text col-6 text-start">Cycle duration (<span id="labelMoveDuration"></span>)</div>
                 <div class="interface-text col-1 text-start">0.10</div>
@@ -171,6 +151,34 @@
             </div>
             <div class="btn interface-button" onclick="changeViewTo('snake-levels')">Back</div>
         </div>
+        <div id="game-over" class="d-none flex-column text-center p-3 interface-card">
+            <div class="interface-title text-uppercase">Game over!</div>
+            <div class="d-flex flex-row py-2">
+                <div class="interface-text col-6 text-start">Score: </div>
+                <div class="interface-text col-6 text-start">10</div>
+            </div>
+            <div class="btn interface-button" onclick="changeViewTo('main')">Back</div>
+        </div>
+        <div id="leaderboard" class="d-none flex-column text-center p-3 interface-card large">
+            <div class="interface-title text-uppercase">Leaderboard</div>
+            <div class="d-flex flex-row interface-table-header">
+                <div class="interface-text col-8 text-start">Name</div>
+                <div class="interface-text col-4 text-end">Total</div>
+            </div>
+            <div class="d-flex flex-row py-2">
+                <div class="interface-text col-8 text-start">Janez</div>
+                <div class="interface-text col-4 text-end">121</div>
+            </div>
+            <div class="d-flex flex-row py-2">
+                <div class="interface-text col-8 text-start">Micka</div>
+                <div class="interface-text col-4 text-end">40</div>
+            </div>
+            <div class="d-flex flex-row py-2 mb-3">
+                <div class="interface-text col-8 text-start">Franci</div>
+                <div class="interface-text col-4 text-end">53</div>
+            </div>
+            <div class="btn interface-button" onclick="changeViewToPrev()">Back</div>
+        </div>
         <div id="credits" class="d-none flex-column text-center p-3 interface-card large">
             <div class="interface-title text-uppercase">Credits</div>
             <div class="interface-text text-start interface-table-header">Made with&nbsp;<a class="interface-link" href="https://threejs.org">Three.js</a></div>
@@ -180,15 +188,7 @@
                 <div class="interface-text text-start"> - fail.mp3 (Player losing or failing)</div>
                 <div class="interface-text text-start"> - punch.mp3 (Martial arts punch)</div>
             </div>
-            <div class="btn interface-button" onclick="changeViewTo('main')">Back</div>
-        </div>
-        <div id="game-over" class="d-none flex-column text-center p-3 interface-card">
-            <div class="interface-title text-uppercase">Game over!</div>
-            <div class="d-flex flex-row py-2">
-                <div class="interface-text col-6 text-start">Score: </div>
-                <div class="interface-text col-6 text-start">10</div>
-            </div>
-            <div class="btn interface-button" onclick="changeViewTo('main')">Back</div>
+            <div class="btn interface-button" onclick="changeViewToPrev()">Back</div>
         </div>
     </div>
 </body>
