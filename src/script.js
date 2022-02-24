@@ -20,6 +20,8 @@ let currLevel = 1;
 let finished = true;
 let collected = 0;
 
+// TODO define prefix for deployed assets, on dev there should be no prefix
+
 /**
  * Base
  */
@@ -28,8 +30,8 @@ const gui = new dat.GUI()
 
 // Textures
 const textureLoader = new THREE.TextureLoader()
-const snakeHeadTexture = textureLoader.load('/textures/snake-bite.png');
-const appleFaceTexture = textureLoader.load('/textures/shiny-apple.png');
+const snakeHeadTexture = textureLoader.load('/tinr-project/textures/snake-bite.png');
+const appleFaceTexture = textureLoader.load('/tinr-project/textures/shiny-apple.png');
 
 // Models
 const modelLoader = new OBJLoader();
@@ -513,7 +515,7 @@ const init = () => {
     loadSettings();
     document.addEventListener("keydown", onDocumentKeyDown, false);
 
-    modelLoader.load('/models/snake_body.obj', 
+    modelLoader.load('/tinr-project/models/snake_body.obj', 
         (snakePartModel => {
             // init model instance
             snakePartInstance = snakePartModel.clone();
@@ -545,7 +547,7 @@ const init = () => {
             snakeHead.add(snakeHeadPlane);
         }
     ));
-    modelLoader.load('/models/apple.obj', 
+    modelLoader.load('/tinr-project/models/apple.obj', 
         (appleModel => {
             // init model instance
             appleInstance = appleModel.clone();
@@ -564,7 +566,7 @@ const init = () => {
             scene.add(apple);
         }
     ));
-    modelLoader.load('/models/slope_2.obj', 
+    modelLoader.load('/tinr-project/models/slope_2.obj', 
         (slopeModel => {
             // init model instance
             slopeInstance = slopeModel.clone();
@@ -581,21 +583,21 @@ const init = () => {
         }
     ));
 
-    audioLoader.load('/audios/blip.mp3',
+    audioLoader.load('/tinr-project/audios/blip.mp3',
         (buffer) => {
             moveSound.setBuffer(buffer);
             moveSound.setVolume(0.5);
         }
     );
 
-    audioLoader.load('/audios/punch.mp3',
+    audioLoader.load('/tinr-project/audios/punch.mp3',
         (buffer) => {
             eatSound.setBuffer(buffer);
             eatSound.setVolume(0.5);
         }
     );
 
-    audioLoader.load('/audios/fail.mp3',
+    audioLoader.load('/tinr-project/audios/fail.mp3',
         (buffer) => {
             failSound.setBuffer(buffer);
             failSound.setVolume(0.5);
