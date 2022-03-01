@@ -10,6 +10,7 @@ body {
     pointer-events: none;
   }
   &-card {
+    min-width: 20rem;
     background-color: $grey;
 
     &.large {
@@ -47,8 +48,42 @@ body {
       color: grey;
     }
 
-    &-item:not(:last-child) {
-      margin-right: 0.5rem;
+    &-item {
+      &.full {
+        width: 100%;
+      }
+      &:not(:last-child) {
+        margin-right: 0.5rem;
+      }
+    }
+
+    &.disabled {
+      &:hover {
+        color: white;
+      }
+      background-color: lightgray;
+      pointer-events: fill;
+      cursor: not-allowed;
+    }
+
+    &.wip {
+      &::after {
+        content: "WIP";
+        position: absolute;
+        color: white;
+        background-color: red;
+        border-radius: 0.5rem;
+        padding: 0.2rem;
+        transform: rotate(-45deg);
+      }
+    }
+
+    &.locked {
+      &::after {
+        content: "🔒";
+        position: absolute;
+        transform: rotate(-45deg);
+      }
     }
   }
   &-icon-button {
@@ -82,9 +117,9 @@ body {
       color: white;
       font-size: 3rem;
       height: 10rem;
-      -webkit-animation:spin 4s linear infinite;
-      -moz-animation:spin 4s linear infinite;
-      animation:spin 4s linear infinite;
+      -webkit-animation: spin 4s linear infinite;
+      -moz-animation: spin 4s linear infinite;
+      animation: spin 4s linear infinite;
     }
   }
 
@@ -98,15 +133,19 @@ body {
   }
 }
 
-@-moz-keyframes spin { 
-  100% { -moz-transform: rotate(360deg); } 
+@-moz-keyframes spin {
+  100% {
+    -moz-transform: rotate(360deg);
+  }
 }
-@-webkit-keyframes spin { 
-  100% { -webkit-transform: rotate(360deg); } 
+@-webkit-keyframes spin {
+  100% {
+    -webkit-transform: rotate(360deg);
+  }
 }
-@keyframes spin { 
-  100% { 
-      -webkit-transform: rotate(360deg); 
-      transform:rotate(360deg); 
-  } 
+@keyframes spin {
+  100% {
+    -webkit-transform: rotate(360deg);
+    transform: rotate(360deg);
+  }
 }

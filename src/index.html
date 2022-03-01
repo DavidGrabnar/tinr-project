@@ -28,21 +28,24 @@
         <div id="game-list" class="d-none flex-column text-center p-3 interface-card">
             <div class="interface-title text-uppercase">Games</div>
             <div class="btn interface-button" onclick="changeViewTo('snake-levels')">Snake</div>
-            <div class="btn interface-button">Minesweeper</div>
+            <div class="btn interface-button disabled wip">Minesweeper</div>
             <div class="btn interface-button" onclick="changeViewTo('main')">Back</div>
         </div>
         <div id="snake-levels" class="d-none flex-column text-center p-3 interface-card">
-            <div class="interface-title text-uppercase">Games</div>
+            <div class="interface-title text-uppercase">Snake</div>
             <div class="btn interface-button" onclick="changeViewTo('snake-controls')">Controls</div>
-            <div class="d-flex flex-row">
-                <div class="btn interface-button interface-button-item" onclick="onStart()">1</div>
-                <div class="btn interface-button interface-button-item">2</div>
-                <div class="btn interface-button interface-button-item">3</div>
+            <div id="snake-levels-progress" class="d-block interface-progress">
+                <span>&#10227;</span>
             </div>
-            <div class="d-flex flex-row">
-                <div class="btn interface-button interface-button-item">4</div>
-                <div class="btn interface-button interface-button-item">5</div>
-                <div class="btn interface-button interface-button-item">6</div>
+            <div class="d-none snake-levels-sample">
+                <div class="d-flex flex-row">
+                    <div class="btn interface-button interface-button-item full">1</div>
+                </div>
+            </div>
+            <div id="snake-levels-entries"></div>
+            <div class="d-flex justify-content-between w-100">
+                <div class="btn interface-button interface-button-item full" onclick="onChangePage(-1)">&larr;</div>
+                <div class="btn interface-button interface-button-item full" onclick="onChangePage(1)">&rarr;</div>
             </div>
             <div class="btn interface-button" onclick="changeViewTo('game-list')">Back</div>
         </div>

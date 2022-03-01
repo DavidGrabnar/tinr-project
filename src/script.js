@@ -24,6 +24,14 @@ const assetUrl = (url) => {
 }
 
 /**
+ * Level config
+ */
+const levelCount = 12;
+const latestLevel = 1;
+let currLevelPage = 0;
+
+
+/**
  * Base
  */
 // Debug
@@ -515,7 +523,232 @@ const reset = () => {
     moveToRandomPosition(apple, snake);
 }
 
+// meta
+
+const submitResults = async () => {
+    try {
+        const response = await axios.post(`${BASE_URL}/submit`, {
+            username,
+            level: currLevel,
+            finished,
+            elapsed: (endTime - startTime) / 1000,
+            collected
+        });
+        console.info(response);
+    } catch (e) {
+        console.error(e);
+    }
+};
+
+const getStatistics = async () => {
+    try {
+        const response = await axios.get(`${BASE_URL}/statistics?name=${username}`);
+        return response.data.leaderboard;
+    } catch (e) {
+        console.error(e);
+    }
+};
+
+const getLeaderboard = async () => {
+    try {
+        const response = await axios.get(`${BASE_URL}/leaderboard-weekly`);
+        return response.data.leaderboard;
+    } catch (e) {
+        console.error(e);
+    }
+};
+
+// UI
+let currentView = 'landing';
+let prevView = 'landing';
+
+const prepareUI = () => {
+    provideSnakeLevels();
+};
+
+const changeViewTo = (viewId)  => {
+    const newView = document.getElementById(viewId);
+    if (!newView) {
+        console.warn(`New view with id '${viewId}' not found!`);
+        return;
+    }
+    const currView = document.getElementById(currentView);
+    if (!currView) {
+        console.error(`Current view with id '${currentView}' not found!`);
+    }
+    console.log(viewId, currentView, prevView);
+    currView.classList.remove('d-flex');
+    currView.classList.add('d-none');
+    newView.classList.add('d-flex');
+    newView.classList.remove('d-none');
+    prevView = currentView;
+    currentView = viewId;
+    if (viewId === 'leaderboard') {
+        provideLeaderboard();
+    }
+};
+
+const changeInterfaceVisiblity = (visible) => {
+    if (visible) {
+        document.getElementById('interface').classList.remove('interface-hidden');
+    } else {
+        document.getElementById('interface').classList.add('interface-hidden');
+    }
+}
+
+const changeViewToPrev = () => {
+    changeViewTo(prevView);
+};
+
+const onStart = () => {
+    changeInterfaceVisiblity(false);
+    reset();
+    start = true;
+};
+
+const provideSnakeLevels = async () => {
+    const progress = document.getElementById('snake-levels-progress');
+    progress.classList.remove('d-none');
+    progress.classList.add('d-block');
+
+    // const leaderboard = await getLeaderboard();
+
+    const samplePage = document.getElementsByClassName('snake-levels-sample')[0];
+    const sampleRow = samplePage.children[0];
+    const sampleLevel = sampleRow.children[0];
+    const wrapper = document.getElementById('snake-levels-entries');
+    while (wrapper.firstChild) {
+        wrapper.removeChild(wrapper.firstChild);
+    }
+
+    const pageCount = Math.ceil(levelCount / 6);
+    const rowCount = 2;
+    const perRow = 3;
+    for (let pageIdx = 0; pageIdx < pageCount; pageIdx++) {
+        const pageClone = samplePage.cloneNode(true);
+        pageClone.removeChild(pageClone.firstChild);
+
+        pageClone.classList.remove('snake-levels-sample');
+        if (pageIdx === 0) {
+            pageClone.classList.remove('d-none');
+            pageClone.classList.add('d-block');
+        }
+
+        for (let pageRowIdx = 0; pageRowIdx < (pageIdx === pageCount - 1 && levelCount % 6 !== 0 && levelCount % 6 <= perRow ? 1 : rowCount); pageRowIdx++) {
+            const rowClone = sampleRow.cloneNode(true);
+            rowClone.removeChild(rowClone.firstChild);
+
+            for (let rowLevelIdx = 0; rowLevelIdx < (pageIdx === pageCount - 1 && pageRowIdx === 1 && levelCount % perRow !== 0 ? levelCount % perRow : perRow); rowLevelIdx++) {
+                const levelIdx = pageIdx * 6 + pageRowIdx * perRow + rowLevelIdx;
+                const levelClone = sampleLevel.cloneNode(true);
+                if (levelIdx > latestLevel - 1) {
+                    levelClone.classList.add('disabled');
+                    levelClone.classList.add('locked');
+                } else {
+                    levelClone.addEventListener('click', (e) => onStart(parseInt(e.target.id.replace('snake-levels-level-', ''))));
+                }
+                levelClone.id = `snake-levels-level-${levelIdx}`;
+                levelClone.innerText = levelIdx + 1;
+                rowClone.appendChild(levelClone);
+            }
+
+            pageClone.appendChild(rowClone);
+        }
+        
+        wrapper.appendChild(pageClone);
+    }
+
+    progress.classList.remove('d-block');
+    progress.classList.add('d-none');
+};
+
+const provideLeaderboard = async () => {
+    const progress = document.getElementById('leaderboard-progress');
+    progress.classList.remove('d-none');
+    progress.classList.add('d-block');
+
+    const leaderboard = await getLeaderboard();
+
+    const sample = document.getElementsByClassName('leaderboard-sample')[0];
+    const wrapper = document.getElementById('leaderboard-entries');
+    while (wrapper.firstChild) {
+        wrapper.removeChild(wrapper.firstChild);
+    }
+    leaderboard.forEach(user => {
+        const clone = sample.cloneNode(true);
+        clone.getElementsByClassName('leaderboard-name')[0].innerText = user.name;
+        clone.getElementsByClassName('leaderboard-total')[0].innerText = user.scores.reduce((t, s) => t + s.value, 0);
+        clone.classList.remove('d-none');
+        clone.classList.add('d-flex');
+
+        wrapper.appendChild(clone);
+    });
+
+    progress.classList.remove('d-block');
+    progress.classList.add('d-none');
+};
+
+const onChangePage = (direction) => {
+    const wrapper = document.getElementById('snake-levels-entries');
+    wrapper.children[currLevelPage].classList.remove('d-block');
+    wrapper.children[currLevelPage].classList.add('d-none');
+
+    const pageCount = Math.ceil(levelCount / 6);
+    currLevelPage = Math.max(0, Math.min(pageCount - 1, currLevelPage + direction));
+    wrapper.children[currLevelPage].classList.remove('d-none');
+    wrapper.children[currLevelPage].classList.add('d-block');
+};
+
+const onEnter = () => {
+    username = document.getElementById('inputName').value;
+    if (!username) {
+        username = `guest-${Math.floor(Math.random() * 8999 + 1000)}`;
+    }
+    document.getElementById('labelName').innerText = username;
+    changeViewTo('main');
+};
+
+const onLogout = () => {
+    username = '';
+    document.getElementById('inputName').value = '';
+    document.getElementById('labelName').innerText = username;
+    changeViewTo('landing');
+};
+
+window.addEventListener("load", () => {
+    const backgroundColorInput = document.getElementById('inputBackgroundColor');
+    backgroundColorInput.value = `#${settings.backgroundColor.toString(16)}`;
+
+    backgroundColorInput.addEventListener(
+        "input", 
+        (e) => 
+            updateSetting('backgroundColor', parseInt(e.target.value.replace('#', ''), 16)), 
+        false
+    );
+
+    const moveDurationInput = document.getElementById('inputMoveDuration');
+    moveDurationInput.value = String(settings.moveDuration);
+
+    moveDurationInput.addEventListener(
+        "input", 
+        (e) => 
+            updateSetting('moveDuration', parseFloat(e.target.value)),
+        false
+    );
+
+}, false);
+
+window.changeViewTo = changeViewTo;
+window.changeViewToPrev = changeViewToPrev;
+window.onChangePage = onChangePage;
+window.onStart = onStart;
+window.onEnter = onEnter;
+window.onLogout = onLogout;
+
+// init
+
 const init = () => {
+    prepareUI();
     loadSettings();
     document.addEventListener("keydown", onDocumentKeyDown, false);
 
@@ -612,144 +845,3 @@ const init = () => {
 };
 
 init();
-
-// meta
-
-const submitResults = async () => {
-    try {
-        const response = await axios.post(`${BASE_URL}/submit`, {
-            username,
-            level: currLevel,
-            finished,
-            elapsed: (endTime - startTime) / 1000,
-            collected
-        });
-        console.info(response);
-    } catch (e) {
-        console.error(e);
-    }
-};
-
-const getLeaderboard = async () => {
-    try {
-        const response = await axios.get(`${BASE_URL}/leaderboard-weekly`);
-        return response.data.leaderboard;
-    } catch (e) {
-        console.error(e);
-    }
-};
-
-// UI
-let currentView = 'landing';
-let prevView = 'landing';
-
-const changeViewTo = (viewId)  => {
-    const newView = document.getElementById(viewId);
-    if (!newView) {
-        console.warn(`New view with id '${viewId}' not found!`);
-        return;
-    }
-    const currView = document.getElementById(currentView);
-    if (!currView) {
-        console.error(`Current view with id '${currentView}' not found!`);
-    }
-    console.log(viewId, currentView, prevView);
-    currView.classList.remove('d-flex');
-    currView.classList.add('d-none');
-    newView.classList.add('d-flex');
-    newView.classList.remove('d-none');
-    prevView = currentView;
-    currentView = viewId;
-    if (viewId === 'leaderboard') {
-        provideLeaderboard();
-    }
-};
-
-const changeInterfaceVisiblity = (visible) => {
-    if (visible) {
-        document.getElementById('interface').classList.remove('interface-hidden');
-    } else {
-        document.getElementById('interface').classList.add('interface-hidden');
-    }
-}
-
-const changeViewToPrev = () => {
-    changeViewTo(prevView);
-};
-
-const onStart = () => {
-    changeInterfaceVisiblity(false);
-    reset();
-    start = true;
-};
-
-const provideLeaderboard = async () => {
-    const progress = document.getElementById('leaderboard-progress');
-    progress.classList.remove('d-none');
-    progress.classList.add('d-block');
-
-    const leaderboard = await getLeaderboard();
-
-    const sample = document.getElementsByClassName('leaderboard-sample')[0];
-    const wrapper = document.getElementById('leaderboard-entries');
-    while (wrapper.firstChild) {
-        wrapper.removeChild(wrapper.firstChild);
-    }
-    leaderboard.forEach(user => {
-        const clone = sample.cloneNode(true);
-        clone.getElementsByClassName('leaderboard-name')[0].innerText = user.name;
-        clone.getElementsByClassName('leaderboard-total')[0].innerText = user.scores.reduce((t, s) => t + s.value, 0);
-        clone.classList.remove('d-none');
-        clone.classList.add('d-flex');
-
-        wrapper.appendChild(clone);
-    });
-
-    progress.classList.remove('d-block');
-    progress.classList.add('d-none');
-};
-
-const onEnter = () => {
-    username = document.getElementById('inputName').value;
-    if (!username) {
-        username = `guest-${Math.floor(Math.random() * 8999 + 1000)}`;
-    }
-    document.getElementById('labelName').innerText = username;
-    changeViewTo('main');
-};
-
-const onLogout = () => {
-    username = '';
-    document.getElementById('inputName').value = '';
-    document.getElementById('labelName').innerText = username;
-    changeViewTo('landing');
-};
-
-window.addEventListener("load", () => {
-    const backgroundColorInput = document.getElementById('inputBackgroundColor');
-    backgroundColorInput.value = `#${settings.backgroundColor.toString(16)}`;
-
-    backgroundColorInput.addEventListener(
-        "input", 
-        (e) => 
-            updateSetting('backgroundColor', parseInt(e.target.value.replace('#', ''), 16)), 
-        false
-    );
-
-    const moveDurationInput = document.getElementById('inputMoveDuration');
-    moveDurationInput.value = String(settings.moveDuration);
-
-    moveDurationInput.addEventListener(
-        "input", 
-        (e) => 
-            updateSetting('moveDuration', parseFloat(e.target.value)),
-        false
-    );
-
-}, false);
-
-window.changeViewTo = changeViewTo;
-window.changeViewToPrev = changeViewToPrev;
-window.onStart = onStart;
-window.onEnter = onEnter;
-window.onLogout = onLogout;
