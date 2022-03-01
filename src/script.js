@@ -264,10 +264,10 @@ const isSnakeHeadCrashedOnSlope = (snake, slope) => {
 }
 
 const isPositionOutOfBounds = (position) => {
-    return position.x < -FLOOR_X_SIZE / 2
-     || position.x > FLOOR_X_SIZE / 2
-     || position.z < -FLOOR_Y_SIZE / 2
-     || position.z > FLOOR_Y_SIZE / 2;
+    return position.x <= -FLOOR_X_SIZE / 2
+     || position.x >= FLOOR_X_SIZE / 2
+     || position.z <= -FLOOR_Y_SIZE / 2
+     || position.z >= FLOOR_Y_SIZE / 2;
 }
 
 const isAppleOnSnake = (apple, snake) => {
@@ -443,9 +443,7 @@ const tick = (deltaTime) => {
     if (start && ready(snake, apple, slope)) {
         // Update objects
         if (currTime - prevMoveTime >= settings.moveDuration) {
-            let tailPosition = getSnakeTail(snake).position;
-            moveSnake(snake, snakeDirection);
-
+            // check game state
             const head = getSnakeHead(snake);
             if (isPositionOnSnakeBody(head.position, snake) || isPositionOutOfBounds(head.position) || isSnakeHeadCrashedOnSlope(snake, slope)) {
                 if (failSound.sourceType !== 'empty') {
@@ -462,22 +460,27 @@ const tick = (deltaTime) => {
                 changeInterfaceVisiblity(true);
                 changeViewTo('game-over');
                 start = false;
-            } else if (isSnakeHeadOnApple(snake, apple)) {
-                if (eatSound.sourceType !== 'empty') {
-                    if (eatSound.isPlaying) {
-                        eatSound.stop();
-                        eatSound.currentTime = 0;
-                    }
-                    eatSound.play();
-                }
-                collected++;
-                addSnakePart(snake, tailPosition);
-                moveToRandomPosition(apple, snake);
             } else {
-                cyclesFromLastAppleMove += cyclesPerAppleMove;
-                if (cyclesFromLastAppleMove >= cyclesPerAppleMove) {
-                    moveApple(apple, snake);
-                    cyclesFromLastAppleMove = 0;
+                let tailPosition = getSnakeTail(snake).position;
+                moveSnake(snake, snakeDirection);
+    
+                if (isSnakeHeadOnApple(snake, apple)) {
+                    if (eatSound.sourceType !== 'empty') {
+                        if (eatSound.isPlaying) {
+                            eatSound.stop();
+                            eatSound.currentTime = 0;
+                        }
+                        eatSound.play();
+                    }
+                    collected++;
+                    addSnakePart(snake, tailPosition);
+                    moveToRandomPosition(apple, snake);
+                } else {
+                    cyclesFromLastAppleMove += cyclesPerAppleMove;
+                    if (cyclesFromLastAppleMove >= cyclesPerAppleMove) {
+                        moveApple(apple, snake);
+                        cyclesFromLastAppleMove = 0;
+                    }
                 }
             }
 
