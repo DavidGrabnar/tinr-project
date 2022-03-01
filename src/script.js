@@ -9,7 +9,6 @@ import * as dat from 'dat.gui'
 import * as TWEEN from '@tweenjs/tween.js';
 
 import axios from 'axios';
-import { cloneUniforms } from 'three';
 
 const BASE_URL = 'https://9dhnedfh4h.execute-api.eu-central-1.amazonaws.com/dev';
 
@@ -20,7 +19,9 @@ let currLevel = 1;
 let finished = true;
 let collected = 0;
 
-// TODO define prefix for deployed assets, on dev there should be no prefix
+const assetUrl = (url) => {
+    return `${process.env.NODE_ENV === 'production' ? '/tinr-project': ''}/${url}`;
+}
 
 /**
  * Base
@@ -30,8 +31,8 @@ const gui = new dat.GUI()
 
 // Textures
 const textureLoader = new THREE.TextureLoader()
-const snakeHeadTexture = textureLoader.load('/tinr-project/textures/snake-bite.png');
-const appleFaceTexture = textureLoader.load('/tinr-project/textures/shiny-apple.png');
+const snakeHeadTexture = textureLoader.load(assetUrl('textures/snake-bite.png'));
+const appleFaceTexture = textureLoader.load(assetUrl('textures/shiny-apple.png'));
 
 // Models
 const modelLoader = new OBJLoader();
@@ -515,7 +516,7 @@ const init = () => {
     loadSettings();
     document.addEventListener("keydown", onDocumentKeyDown, false);
 
-    modelLoader.load('/tinr-project/models/snake_body.obj', 
+    modelLoader.load(assetUrl('models/snake_body.obj'), 
         (snakePartModel => {
             // init model instance
             snakePartInstance = snakePartModel.clone();
@@ -547,7 +548,7 @@ const init = () => {
             snakeHead.add(snakeHeadPlane);
         }
     ));
-    modelLoader.load('/tinr-project/models/apple.obj', 
+    modelLoader.load(assetUrl('models/apple.obj'), 
         (appleModel => {
             // init model instance
             appleInstance = appleModel.clone();
@@ -566,7 +567,7 @@ const init = () => {
             scene.add(apple);
         }
     ));
-    modelLoader.load('/tinr-project/models/slope_2.obj', 
+    modelLoader.load(assetUrl('models/slope_2.obj'), 
         (slopeModel => {
             // init model instance
             slopeInstance = slopeModel.clone();
@@ -583,21 +584,21 @@ const init = () => {
         }
     ));
 
-    audioLoader.load('/tinr-project/audios/blip.mp3',
+    audioLoader.load(assetUrl('audios/blip.mp3'),
         (buffer) => {
             moveSound.setBuffer(buffer);
             moveSound.setVolume(0.5);
         }
     );
 
-    audioLoader.load('/tinr-project/audios/punch.mp3',
+    audioLoader.load(assetUrl('audios/punch.mp3'),
         (buffer) => {
             eatSound.setBuffer(buffer);
             eatSound.setVolume(0.5);
         }
     );
 
-    audioLoader.load('/tinr-project/audios/fail.mp3',
+    audioLoader.load(assetUrl('audios/fail.mp3'),
         (buffer) => {
             failSound.setBuffer(buffer);
             failSound.setVolume(0.5);
