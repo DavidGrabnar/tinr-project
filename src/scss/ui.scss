@@ -133,6 +133,23 @@ body {
   }
 }
 
+.hud {
+  &-wrapper {
+    pointer-events: none;
+  }
+  &-card {
+    margin-right: 3rem;
+  }
+  &-text {
+    color: white;
+    font-size: 2rem;
+    text-transform: uppercase;
+  }
+  &-hidden {
+    display: none !important;
+  }
+}
+
 @-moz-keyframes spin {
   100% {
     -moz-transform: rotate(360deg);

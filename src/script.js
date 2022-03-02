@@ -26,10 +26,59 @@ const assetUrl = (url) => {
 /**
  * Level config
  */
-const levelCount = 12;
-const latestLevel = 1;
 let currLevelPage = 0;
-
+const levelConfig = {
+    levels: [
+        {
+            goal: 3,
+            dynamic: false 
+        },
+        {
+            goal: 3,
+            dynamic: false 
+        },
+        {
+            goal: 3,
+            dynamic: false 
+        },
+        {
+            goal: 3,
+            dynamic: false 
+        },
+        {
+            goal: 3,
+            dynamic: false 
+        },
+        {
+            goal: 3,
+            dynamic: false 
+        },
+        {
+            goal: 3,
+            dynamic: true 
+        },
+        {
+            goal: 3,
+            dynamic: true 
+        },
+        {
+            goal: 3,
+            dynamic: true 
+        },
+        {
+            goal: 3,
+            dynamic: true 
+        },
+        {
+            goal: 3,
+            dynamic: true 
+        },
+        {
+            goal: 3,
+            dynamic: true 
+        }
+    ]
+};
 
 /**
  * Base
@@ -50,6 +99,7 @@ const listener = new THREE.AudioListener();
 const moveSound = new THREE.Audio(listener);
 const eatSound = new THREE.Audio(listener);
 const failSound = new THREE.Audio(listener);
+const passSound = new THREE.Audio(listener);
 
 const audioLoader = new THREE.AudioLoader();
 
@@ -108,7 +158,7 @@ scene.add( floor );
  */
 const defaultSettings = {
     backgroundColor: 0x2181c2,
-    moveDuration: .25,
+    moveDuration: .5,
 };
 
 const settings = {
@@ -453,19 +503,32 @@ const tick = (deltaTime) => {
         if (currTime - prevMoveTime >= settings.moveDuration) {
             // check game state
             const head = getSnakeHead(snake);
-            if (isPositionOnSnakeBody(head.position, snake) || isPositionOutOfBounds(head.position) || isSnakeHeadCrashedOnSlope(snake, slope)) {
-                if (failSound.sourceType !== 'empty') {
-                    if (failSound.isPlaying) {
-                        failSound.stop();
-                        failSound.currentTime = 0;
+
+            const win = collected >= currentLevel().goal;
+            const lose = isPositionOnSnakeBody(head.position, snake) || isPositionOutOfBounds(head.position) || isSnakeHeadCrashedOnSlope(snake, slope);
+
+            if (win || lose) {
+                let sound;
+                if (win) {
+                    sound = passSound;
+                } else {
+                    sound = failSound;
+                }
+                if (sound.sourceType !== 'empty') {
+                    if (sound.isPlaying) {
+                        sound.stop();
+                        sound.currentTime = 0;
                     }
-                    failSound.play();
+                    sound.play();
                 }
                 
-                finished = true; // TODO change to 0 when win is implemented
+                finished = win;
                 endTime = new Date();
                 submitResults();
                 changeInterfaceVisiblity(true);
+                const elapsed = (endTime - startTime) / 1000;
+                const score = Math.max(0, Number(finished) * (currLevel * 100 + collected * 10 - Math.floor(elapsed / 10)));
+                updateScore(finished, score);
                 changeViewTo('game-over');
                 start = false;
             } else {
@@ -484,13 +547,17 @@ const tick = (deltaTime) => {
                     addSnakePart(snake, tailPosition);
                     moveToRandomPosition(apple, snake);
                 } else {
-                    cyclesFromLastAppleMove += cyclesPerAppleMove;
-                    if (cyclesFromLastAppleMove >= cyclesPerAppleMove) {
-                        moveApple(apple, snake);
-                        cyclesFromLastAppleMove = 0;
+                    if (currentLevel().dynamic) {
+                        cyclesFromLastAppleMove += cyclesPerAppleMove;
+                        if (cyclesFromLastAppleMove >= cyclesPerAppleMove) {
+                            moveApple(apple, snake);
+                            cyclesFromLastAppleMove = 0;
+                        }
                     }
                 }
             }
+
+            updateHud();
 
             prevMoveTime = currTime;
         }
@@ -525,6 +592,10 @@ const reset = () => {
 
 // meta
 
+const currentLevel = () => {
+    return levelConfig.levels[currLevel - 1];
+};
+
 const submitResults = async () => {
     try {
         const response = await axios.post(`${BASE_URL}/submit`, {
@@ -535,6 +606,7 @@ const submitResults = async () => {
             collected
         });
         console.info(response);
+        provideSnakeLevels();
     } catch (e) {
         console.error(e);
     }
@@ -558,13 +630,18 @@ const getLeaderboard = async () => {
     }
 };
 
+const getUserInfo = async () => {
+    try {
+        const response = await axios.get(`${BASE_URL}/user-info?username=${username}`);
+        return response.data.user;
+    } catch (e) {
+        console.error(e);
+    }
+};
+
 // UI
 let currentView = 'landing';
 let prevView = 'landing';
-
-const prepareUI = () => {
-    provideSnakeLevels();
-};
 
 const changeViewTo = (viewId)  => {
     const newView = document.getElementById(viewId);
@@ -591,8 +668,10 @@ const changeViewTo = (viewId)  => {
 const changeInterfaceVisiblity = (visible) => {
     if (visible) {
         document.getElementById('interface').classList.remove('interface-hidden');
+        document.getElementById('hud').classList.add('hud-hidden');
     } else {
         document.getElementById('interface').classList.add('interface-hidden');
+        document.getElementById('hud').classList.remove('hud-hidden');
     }
 }
 
@@ -600,7 +679,10 @@ const changeViewToPrev = () => {
     changeViewTo(prevView);
 };
 
-const onStart = () => {
+const onStart = (level) => {
+    currLevel = level;
+    collected = 0;
+    startTime = new Date();
     changeInterfaceVisiblity(false);
     reset();
     start = true;
@@ -611,7 +693,7 @@ const provideSnakeLevels = async () => {
     progress.classList.remove('d-none');
     progress.classList.add('d-block');
 
-    // const leaderboard = await getLeaderboard();
+    const user = await getUserInfo();
 
     const samplePage = document.getElementsByClassName('snake-levels-sample')[0];
     const sampleRow = samplePage.children[0];
@@ -621,6 +703,7 @@ const provideSnakeLevels = async () => {
         wrapper.removeChild(wrapper.firstChild);
     }
 
+    const levelCount = levelConfig.levels.length;
     const pageCount = Math.ceil(levelCount / 6);
     const rowCount = 2;
     const perRow = 3;
@@ -641,11 +724,11 @@ const provideSnakeLevels = async () => {
             for (let rowLevelIdx = 0; rowLevelIdx < (pageIdx === pageCount - 1 && pageRowIdx === 1 && levelCount % perRow !== 0 ? levelCount % perRow : perRow); rowLevelIdx++) {
                 const levelIdx = pageIdx * 6 + pageRowIdx * perRow + rowLevelIdx;
                 const levelClone = sampleLevel.cloneNode(true);
-                if (levelIdx > latestLevel - 1) {
+                if (levelIdx > user.latestLevel - 1) {
                     levelClone.classList.add('disabled');
                     levelClone.classList.add('locked');
                 } else {
-                    levelClone.addEventListener('click', (e) => onStart(parseInt(e.target.id.replace('snake-levels-level-', ''))));
+                    levelClone.addEventListener('click', (e) => onStart(parseInt(e.target.id.replace('snake-levels-level-', '')) + 1));
                 }
                 levelClone.id = `snake-levels-level-${levelIdx}`;
                 levelClone.innerText = levelIdx + 1;
@@ -688,12 +771,31 @@ const provideLeaderboard = async () => {
     progress.classList.add('d-none');
 };
 
+const updateHud = () => {
+    document.getElementById('hud-level').innerText = currLevel;
+    document.getElementById('hud-collected').innerText = `${collected}/${currentLevel().goal}`;
+
+    const elapsed = (new Date() - startTime) / 1000;
+    const seconds = Math.floor(elapsed % 60);
+    const minutes = Math.floor(elapsed / 60);
+    document.getElementById('hud-elapsed').innerText = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+};
+
+const updateScore = (finished, score) => {
+    const status = finished
+        ? 'You won!'
+        : 'You lost! Try again.';
+
+    document.getElementById('game-over-status').innerText = status;
+    document.getElementById('game-over-score').innerText = score;
+};
+
 const onChangePage = (direction) => {
     const wrapper = document.getElementById('snake-levels-entries');
     wrapper.children[currLevelPage].classList.remove('d-block');
     wrapper.children[currLevelPage].classList.add('d-none');
 
-    const pageCount = Math.ceil(levelCount / 6);
+    const pageCount = Math.ceil(levelConfig.levels.length / 6);
     currLevelPage = Math.max(0, Math.min(pageCount - 1, currLevelPage + direction));
     wrapper.children[currLevelPage].classList.remove('d-none');
     wrapper.children[currLevelPage].classList.add('d-block');
@@ -706,6 +808,7 @@ const onEnter = () => {
     }
     document.getElementById('labelName').innerText = username;
     changeViewTo('main');
+    provideSnakeLevels();
 };
 
 const onLogout = () => {
@@ -748,7 +851,6 @@ window.onLogout = onLogout;
 // init
 
 const init = () => {
-    prepareUI();
     loadSettings();
     document.addEventListener("keydown", onDocumentKeyDown, false);
 
@@ -838,6 +940,13 @@ const init = () => {
         (buffer) => {
             failSound.setBuffer(buffer);
             failSound.setVolume(0.5);
+        }
+    );
+
+    audioLoader.load(assetUrl('audios/pass.mp3'),
+        (buffer) => {
+            passSound.setBuffer(buffer);
+            passSound.setVolume(0.5);
         }
     );
 
