@@ -31,51 +31,63 @@ const levelConfig = {
     levels: [
         {
             goal: 3,
-            dynamic: false 
+            dynamic: false,
+            powerups: ['ghost']
         },
         {
             goal: 3,
-            dynamic: false 
+            dynamic: false,
+            powerups: []
         },
         {
             goal: 3,
-            dynamic: false 
+            dynamic: false,
+            powerups: [] 
         },
         {
             goal: 3,
-            dynamic: false 
+            dynamic: false,
+            powerups: [] 
         },
         {
             goal: 3,
-            dynamic: false 
+            dynamic: false,
+            powerups: [] 
         },
         {
             goal: 3,
-            dynamic: false 
+            dynamic: false,
+            powerups: [] 
         },
         {
             goal: 3,
-            dynamic: true 
+            dynamic: true,
+            powerups: [] 
         },
         {
             goal: 3,
-            dynamic: true 
+            dynamic: true,
+            powerups: [] 
         },
         {
             goal: 3,
-            dynamic: true 
+            dynamic: true,
+            powerups: [] 
         },
         {
             goal: 3,
-            dynamic: true 
+            dynamic: true,
+            powerups: [] 
         },
         {
             goal: 3,
-            dynamic: true 
+            dynamic: true,
+            powerups: [] 
         },
         {
             goal: 3,
-            dynamic: true 
+            dynamic: true,
+            powerups: [] 
         }
     ]
 };
@@ -90,6 +102,7 @@ const gui = new dat.GUI()
 const textureLoader = new THREE.TextureLoader()
 const snakeHeadTexture = textureLoader.load(assetUrl('textures/snake-bite.png'));
 const appleFaceTexture = textureLoader.load(assetUrl('textures/shiny-apple.png'));
+const ghostIconTexture = textureLoader.load(assetUrl('textures/ghost.png'));
 
 // Models
 const modelLoader = new OBJLoader();
@@ -264,6 +277,7 @@ const clock = new THREE.Clock()
 let snakePartInstance = null;
 let appleInstance = null;
 let slopeInstance = null;
+let ghostPowerupInstance = null;
 
 // game objects
 let snake = [];
@@ -437,6 +451,11 @@ const bounceBackEasing = (k) => {
         ? 1 - Math.pow(2, -10 * k)
         : Math.pow(2, -10 * k);
 };
+const easeDeLaSphagetti = (x) => {
+    return x < 0.5 
+    ? - x 
+    : (2 * (x - 0.5) * 1.5) - 0.5;
+}
 
 const moveApple = (apple, snake) => {
     const newApplePosition = apple.position.clone();
@@ -531,6 +550,81 @@ const tick = (deltaTime) => {
                 updateScore(finished, score);
                 changeViewTo('game-over');
                 start = false;
+
+                if (!win) {
+                    const animationDuration = 3;
+                    snake.forEach(part => {
+                        part.rotation.y = head.rotation.y;
+                        const payload = {angle: 0, prevAngle: 0};
+                        const targetPayload = {angle: animationDuration * 2 * Math.PI};
+                        new TWEEN.Tween(payload)
+                            .to(targetPayload, animationDuration * 1000)
+                            .easing(TWEEN.Easing.Quadratic.InOut)
+                            .onUpdate(() => {
+                                let angleDiff = payload.angle - payload.prevAngle;
+                                if (head.position.x <= -FLOOR_X_SIZE / 2) {
+                                    part.rotateX(-1 * angleDiff);
+                                } else if (head.position.x >= FLOOR_X_SIZE / 2) {
+                                    part.rotateX(1 * angleDiff);
+                                } else if (head.position.z <= -FLOOR_Y_SIZE / 2) {
+                                    part.rotateZ(-1 * angleDiff);
+                                } else if (head.position.z >= FLOOR_Y_SIZE / 2) {
+                                    part.rotateZ(1 * angleDiff);
+                                } else {
+                                    part.rotateX(-1 * angleDiff);
+                                }
+                                payload.prevAngle = payload.angle;
+                            })
+                            .start();
+    
+                        const positionV = part.position.clone();
+                        const targetPositionV = part.position.clone();
+                        targetPositionV.y = -15;
+                        new TWEEN.Tween(positionV)
+                            .to(targetPositionV, animationDuration * 1000)
+                            .easing(easeDeLaSphagetti)
+                            .onUpdate(() => part.position.y = positionV.y)
+                            .start();
+    
+                        const positionH = part.position.clone();
+                        const targetPositionH = head.position.clone();
+                        if (head.position.x <= -FLOOR_X_SIZE / 2) {
+                            targetPositionH.x -= 10;
+                        } else if (head.position.x >= FLOOR_X_SIZE / 2) {
+                            targetPositionH.x += 10;
+                        } else if (head.position.z <= -FLOOR_Y_SIZE / 2) {
+                            targetPositionH.z -= 10;
+                        } else if (head.position.z >= FLOOR_Y_SIZE / 2) {
+                            targetPositionH.z += 10;
+                        } else {
+                            targetPositionH.x -= 10;
+                        }
+                        targetPositionH.x += (Math.random() * 3) - 1.5;
+                        targetPositionH.z += (Math.random() * 3) - 1.5;
+                        new TWEEN.Tween(positionH)
+                            .to(targetPositionH, animationDuration * 1000)
+                            .easing(TWEEN.Easing.Quadratic.InOut)
+                            .onUpdate(() => {
+                                part.position.x = positionH.x;
+                                part.position.z = positionH.z;
+                            })
+                            .start();
+                    });
+                } else {
+                    const animationDuration = 3;
+                    const repeat = 3;
+                    snake.forEach((part, i) => {
+                        const targetPosition = part.position.clone();
+                        targetPosition.y += 1;
+                        new TWEEN.Tween(part.position)
+                            .to(targetPosition, animationDuration * 1000 / repeat)
+                            .easing(bounceBackEasing)
+                            .delay(250 * i)
+                            .repeat(repeat)
+                            .repeatDelay(250)
+                            .start();
+                    });
+                }
             } else {
                 let tailPosition = getSnakeTail(snake).position;
                 moveSnake(snake, snakeDirection);
@@ -585,9 +679,43 @@ const reset = () => {
     head.position.x = -FLOOR_X_POSITION + 0.5;
     head.position.z = -FLOOR_Y_POSITION + 0.5;
     head.position.y = -FLOOR_Z_POSITION + 0.5;
+    head.rotation.set(0, 0, 0);
     snakeDirection = 0;
 
+    spawnPowerups();
+
     moveToRandomPosition(apple, snake);
+
+};
+
+const spawnPowerups = () => {
+    // TODO check if location is free (no snake, no apple, no step, no pillar)
+    const level = currentLevel();
+    level.powerups.forEach(key => {
+        switch (key) {
+            case 'ghost':
+                const powerup = ghostPowerupInstance.clone();
+                powerup.position.x = Math.floor(Math.random() * FLOOR_X_SIZE) - (FLOOR_X_SIZE / 2) + 0.5;
+                powerup.position.z = Math.floor(Math.random() * FLOOR_Y_SIZE) - (FLOOR_Y_SIZE / 2) + 0.5;
+                const payload = {angle: 0, prevAngle: 0};
+                new TWEEN.Tween(payload)
+                    .to({angle: 2 * Math.PI}, 1000)
+                    .easing(TWEEN.Easing.Quadratic.InOut)
+                    .onUpdate(() => {
+                        let angleDiff = payload.angle - payload.prevAngle;
+                        powerup.rotateY(-1 * angleDiff);
+                        payload.prevAngle = payload.angle;
+                    })
+                    .repeat(Infinity)
+                    .start();
+                
+                scene.add(powerup);
+                window.test = powerup;
+                break;
+            default:
+                console.warn(`Invalid powerup in config: '${key}'`);
+        }
+    });
 }
 
 // meta
@@ -685,7 +813,29 @@ const onStart = (level) => {
     startTime = new Date();
     changeInterfaceVisiblity(false);
     reset();
-    start = true;
+
+    const head = getSnakeHead(snake);
+    const animationDuration = 2;
+    const payload = {angle: 0, prevAngle: 0};
+    const targetPayload = {angle: animationDuration * 2 * Math.PI};
+    new TWEEN.Tween(payload)
+        .to(targetPayload, animationDuration * 1000)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .onUpdate(() => {
+            let angleDiff = payload.angle - payload.prevAngle;
+            head.rotateZ(1 * angleDiff);
+            payload.prevAngle = payload.angle;
+        })
+        .start();
+
+    const targetPosition = head.position.clone();
+    head.position.y = 20;
+    new TWEEN.Tween(head.position)
+        .to(targetPosition, animationDuration * 1000)
+        .easing(TWEEN.Easing.Quadratic.Out)
+        .start();
+
+    setTimeout(() => start = true, animationDuration * 1.1 * 1000);
 };
 
 const provideSnakeLevels = async () => {
@@ -949,6 +1099,20 @@ const init = () => {
             passSound.setVolume(0.5);
         }
     );
+
+    ghostPowerupInstance = new THREE.Mesh(
+        new THREE.PlaneGeometry(.8, .8), 
+        new THREE.MeshBasicMaterial({
+            color: 0x9803fc, 
+            map: ghostIconTexture,
+            transparent: true,
+            polygonOffset: true, 
+            polygonOffsetFactor: -1,
+            side: THREE.DoubleSide
+        }) 
+    );
+
+    ghostPowerupInstance.position.set(0, .5, 0);
 
     window.requestAnimationFrame(tick);
 };
