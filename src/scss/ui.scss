@@ -142,8 +142,11 @@ body {
   }
   &-text {
     color: white;
-    font-size: 2rem;
     text-transform: uppercase;
+
+    &-title {
+      font-size: 2rem;
+    }
   }
   &-hidden {
     display: none !important;

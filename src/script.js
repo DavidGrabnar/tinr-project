@@ -24,75 +24,6 @@ const assetUrl = (url) => {
 }
 
 /**
- * Level config
- */
-let currLevelPage = 0;
-const levelConfig = {
-    levels: [
-        {
-            goal: 3,
-            dynamic: false,
-            powerups: ['ghost']
-        },
-        {
-            goal: 3,
-            dynamic: false,
-            powerups: []
-        },
-        {
-            goal: 3,
-            dynamic: false,
-            powerups: [] 
-        },
-        {
-            goal: 3,
-            dynamic: false,
-            powerups: [] 
-        },
-        {
-            goal: 3,
-            dynamic: false,
-            powerups: [] 
-        },
-        {
-            goal: 3,
-            dynamic: false,
-            powerups: [] 
-        },
-        {
-            goal: 3,
-            dynamic: true,
-            powerups: [] 
-        },
-        {
-            goal: 3,
-            dynamic: true,
-            powerups: [] 
-        },
-        {
-            goal: 3,
-            dynamic: true,
-            powerups: [] 
-        },
-        {
-            goal: 3,
-            dynamic: true,
-            powerups: [] 
-        },
-        {
-            goal: 3,
-            dynamic: true,
-            powerups: [] 
-        },
-        {
-            goal: 3,
-            dynamic: true,
-            powerups: [] 
-        }
-    ]
-};
-
-/**
  * Base
  */
 // Debug
@@ -103,6 +34,7 @@ const textureLoader = new THREE.TextureLoader()
 const snakeHeadTexture = textureLoader.load(assetUrl('textures/snake-bite.png'));
 const appleFaceTexture = textureLoader.load(assetUrl('textures/shiny-apple.png'));
 const ghostIconTexture = textureLoader.load(assetUrl('textures/ghost.png'));
+const snailIconTexture = textureLoader.load(assetUrl('textures/snail.png'));
 
 // Models
 const modelLoader = new OBJLoader();
@@ -277,10 +209,11 @@ const clock = new THREE.Clock()
 let snakePartInstance = null;
 let appleInstance = null;
 let slopeInstance = null;
-let ghostPowerupInstance = null;
 
 // game objects
 let snake = [];
+let powerups = [];
+let activePowerups = [];
 // 0 -> +x, 1 -> -x, 2 -> +y, 3 -> -y
 let snakeDirection = 0;
 let prevMoveTime = 0;
@@ -295,6 +228,87 @@ let apple = null;
 let slope = null;
 // 0 -> +x, 1 -> -x, 2 -> +y, 3 -> -y
 let slopeDirection = 1;
+
+
+/**
+ * Level config
+ */
+
+let currLevelPage = 0;
+const levelConfig = {
+    powerups: {
+        'ghost': {
+            name: 'Ghost',
+            instance: null
+        },
+        'snail': {
+            name: 'Snail',
+            instance: null
+        }
+    },
+    levels: [
+        {
+            goal: 3,
+            dynamic: false,
+            powerups: ['ghost', 'snail']
+        },
+        {
+            goal: 3,
+            dynamic: false,
+            powerups: []
+        },
+        {
+            goal: 3,
+            dynamic: false,
+            powerups: [] 
+        },
+        {
+            goal: 3,
+            dynamic: false,
+            powerups: [] 
+        },
+        {
+            goal: 3,
+            dynamic: false,
+            powerups: [] 
+        },
+        {
+            goal: 3,
+            dynamic: false,
+            powerups: [] 
+        },
+        {
+            goal: 3,
+            dynamic: true,
+            powerups: [] 
+        },
+        {
+            goal: 3,
+            dynamic: true,
+            powerups: [] 
+        },
+        {
+            goal: 3,
+            dynamic: true,
+            powerups: [] 
+        },
+        {
+            goal: 3,
+            dynamic: true,
+            powerups: [] 
+        },
+        {
+            goal: 3,
+            dynamic: true,
+            powerups: [] 
+        },
+        {
+            goal: 3,
+            dynamic: true,
+            powerups: [] 
+        }
+    ]
+};
 
 /**
  * Event handlers
@@ -626,6 +640,46 @@ const tick = (deltaTime) => {
                     });
                 }
             } else {
+                const powerup = powerups.find(powerup => powerup.position.equals(head.position));
+                if (powerup) {
+                    scene.remove(powerup);
+
+                    const id = `powerup-${Math.random() * 8999 + 1000}`;
+                    activePowerups.push({
+                        id,
+                        type: powerup.userData.type,
+                        start: new Date()
+                    });
+
+                    const el = document.getElementsByClassName('hud-powerups-sample')[0].cloneNode(true);
+                    el.classList.remove('d-none');
+                    el.classList.add('d-flex');
+                    el.id = id;
+                    // TODO FIX image
+                    document.getElementById('hud-powerups').appendChild(el);
+                }
+
+                activePowerups.forEach((powerup, i) => {
+                    const el = document.getElementById(powerup.id);
+                    const left = 10 - (new Date() - powerup.start) / 1000;
+                    if (left < 0) {
+                        // remove
+                        activePowerups.splice(i, 1);
+                        el.remove();
+                    } else {
+                        const seconds = Math.floor(left % 60);
+                        const minutes = Math.floor(left / 60);
+                        el.getElementsByClassName('hud-duration')[0].innerText = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                    }
+                });
+
+                const isGhost = activePowerups.find(powerup => powerup.type === 'ghost');
+                const isSnail = activePowerups.find(powerup => powerup.type === 'ghost');
+
+                window.snake = snake;
+                const opacity = isGhost ? 1 : 0.5;
+                snake.forEach(el => el.children[0].material.opacity = opacity);
+
                 let tailPosition = getSnakeTail(snake).position;
                 moveSnake(snake, snakeDirection);
     
@@ -682,6 +736,16 @@ const reset = () => {
     head.rotation.set(0, 0, 0);
     snakeDirection = 0;
 
+    powerups.forEach(powerup => scene.remove(powerup));
+    powerups.splice(0);
+
+    const powerupsWrapper = document.getElementById('hud-powerups');
+    while (powerupsWrapper.firstChild) {
+        powerupsWrapper.removeChild(powerupsWrapper.firstChild);
+    }
+
+    activePowerups.splice(0);
+    
     spawnPowerups();
 
     moveToRandomPosition(apple, snake);
@@ -694,7 +758,8 @@ const spawnPowerups = () => {
     level.powerups.forEach(key => {
         switch (key) {
             case 'ghost':
-                const powerup = ghostPowerupInstance.clone();
+            case 'snail':
+                const powerup = levelConfig.powerups[key].instance.clone();
                 powerup.position.x = Math.floor(Math.random() * FLOOR_X_SIZE) - (FLOOR_X_SIZE / 2) + 0.5;
                 powerup.position.z = Math.floor(Math.random() * FLOOR_Y_SIZE) - (FLOOR_Y_SIZE / 2) + 0.5;
                 const payload = {angle: 0, prevAngle: 0};
@@ -710,7 +775,7 @@ const spawnPowerups = () => {
                     .start();
                 
                 scene.add(powerup);
-                window.test = powerup;
+                powerups.push(powerup);
                 break;
             default:
                 console.warn(`Invalid powerup in config: '${key}'`);
@@ -1009,7 +1074,7 @@ const init = () => {
             // init model instance
             snakePartInstance = snakePartModel.clone();
             snakePartInstance.children[0].scale.set(.5, .5, .5);
-            snakePartInstance.children[0].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
+            snakePartInstance.children[0].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26, transparent: true} );
             snakePartInstance.children.forEach(c => c.castShadow = true);
             snakePartInstance.position.x = -FLOOR_X_POSITION + 0.5;
             snakePartInstance.position.z = -FLOOR_Y_POSITION + 0.5;
@@ -1100,7 +1165,7 @@ const init = () => {
         }
     );
 
-    ghostPowerupInstance = new THREE.Mesh(
+    levelConfig.powerups.ghost.instance = new THREE.Mesh(
         new THREE.PlaneGeometry(.8, .8), 
         new THREE.MeshBasicMaterial({
             color: 0x9803fc, 
@@ -1112,7 +1177,23 @@ const init = () => {
         }) 
     );
 
-    ghostPowerupInstance.position.set(0, .5, 0);
+    levelConfig.powerups.ghost.instance.position.set(0, .5, 0);
+    levelConfig.powerups.ghost.instance.userData.type = 'ghost';
+
+    levelConfig.powerups.snail.instance = new THREE.Mesh(
+        new THREE.PlaneGeometry(.8, .8), 
+        new THREE.MeshBasicMaterial({
+            color: 0x9803fc, 
+            map: snailIconTexture,
+            transparent: true,
+            polygonOffset: true, 
+            polygonOffsetFactor: -1,
+            side: THREE.DoubleSide
+        }) 
+    );
+    
+    levelConfig.powerups.snail.instance.position.set(0, .5, 0);
+    levelConfig.powerups.snail.instance.userData.type = 'snail';
 
     window.requestAnimationFrame(tick);
 };

@@ -7,11 +7,17 @@
 </head>
 <body>
     <canvas class="webgl"></canvas>
-    <div id="hud" class="position-absolute w-100 h-100 d-flex justify-content-center hud-wrapper mt-5 hud-hidden">
-        <div class="d-flex">
-            <div class="hud-card hud-text mr-5">Level: <span id="hud-level">X</span></div>
-            <div class="hud-card hud-text mr-5">Collected: <span id="hud-collected">X/Y</span></div>
-            <div class="hud-card hud-text">Elapsed: <span id="hud-elapsed">HH:MM</span></div>
+    <div id="hud" class="position-absolute w-100 h-100 d-flex flex-column align-items-center hud-wrapper mt-5 hud-hidden">
+        <div class="d-flex mb-3">
+            <div class="hud-card hud-text hud-text-title mr-5">Level: <span id="hud-level">X</span></div>
+            <div class="hud-card hud-text hud-text-title mr-5">Collected: <span id="hud-collected">X/Y</span></div>
+            <div class="hud-card hud-text hud-text-title">Elapsed: <span id="hud-elapsed">HH:MM</span></div>
+        </div>
+        <div class="d-none hud-card hud-text align-items-center hud-powerups-sample mr-5">
+            <img class="hud-image mr-5" src="../static/textures/snake-bite.png">
+            <span class="hud-duration">00:10</span>
+        </div>
+        <div id="hud-powerups" class="d-flex">
         </div>
     </div>
     <div id="interface" class="position-absolute w-100 h-100 d-flex justify-content-center align-items-center interface-wrapper">
@@ -199,6 +205,7 @@
             <div class="d-flex flex-column py-2">
                 <div class="d-flex interface-text text-start">Icons from&nbsp;<a class="interface-link" href="https://www.flaticon.com">Flaticon</a></div>
                 <div class="interface-text text-start"> - Ghost icon&nbsp;<a class="interface-link" href="https://www.flaticon.com/free-icons/ghost" title="ghost icons">created by Pixelmeetup - Flaticon</a></div>
+                <div class="interface-text text-start"> - Snail icon&nbsp;<a class="interface-link" href="https://www.flaticon.com/free-icons/snail" title="ghost icons">created by Freepik - Flaticon</a></div>
             </div>
             <div class="btn interface-button" onclick="changeViewToPrev()">Back</div>
         </div>
