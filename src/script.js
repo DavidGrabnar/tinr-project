@@ -229,6 +229,7 @@ let slope = null;
 // 0 -> +x, 1 -> -x, 2 -> +y, 3 -> -y
 let slopeDirection = 1;
 
+let tickMultiplier = 1;
 
 /**
  * Level config
@@ -237,13 +238,15 @@ let slopeDirection = 1;
 let currLevelPage = 0;
 const levelConfig = {
     powerups: {
-        'ghost': {
+        ghost: {
             name: 'Ghost',
-            instance: null
+            instance: null,
+            icon: null
         },
-        'snail': {
+        snail: {
             name: 'Snail',
-            instance: null
+            instance: null,
+            icon: null
         }
     },
     levels: [
@@ -309,6 +312,18 @@ const levelConfig = {
         }
     ]
 };
+
+fetch(assetUrl('textures/ghost.png'))
+    .then(response => response.blob())
+    .then(imageBlob => {
+        levelConfig.powerups.ghost.icon = URL.createObjectURL(imageBlob);
+    });
+
+fetch(assetUrl('textures/snail.png'))
+    .then(response => response.blob())
+    .then(imageBlob => {
+        levelConfig.powerups.snail.icon = URL.createObjectURL(imageBlob);
+    });
 
 /**
  * Event handlers
@@ -438,12 +453,12 @@ const moveSnake = (snake, snakeDirection) => {
             }
         }
         new TWEEN.Tween(snakePart.position)
-            .to(prevPosition, settings.moveDuration * 0.9 * 1000)
+            .to(prevPosition, settings.moveDuration * tickMultiplier * 0.9 * 1000)
             .easing(TWEEN.Easing.Quadratic.Out)
             .start()
 
         new TWEEN.Tween(snakePart.scale)
-            .to(new THREE.Vector3(.75, .75, .75), settings.moveDuration * 0.9 * 1000)
+            .to(new THREE.Vector3(.75, .75, .75), settings.moveDuration * tickMultiplier * 0.9 * 1000)
             .easing(bounceBackEasing)
             .start();
 
@@ -504,7 +519,7 @@ const moveApple = (apple, snake) => {
         }
     }
     new TWEEN.Tween(apple.position)
-        .to(newApplePosition, settings.moveDuration * 0.9 * 1000)
+        .to(newApplePosition, settings.moveDuration * tickMultiplier * 0.9 * 1000)
         .easing(TWEEN.Easing.Quadratic.Out)
         .start()
 };
@@ -533,12 +548,51 @@ const tick = (deltaTime) => {
 
     if (start && ready(snake, apple, slope)) {
         // Update objects
-        if (currTime - prevMoveTime >= settings.moveDuration) {
+        if (currTime - prevMoveTime >= settings.moveDuration * tickMultiplier) {
             // check game state
             const head = getSnakeHead(snake);
 
+            const powerup = powerups.find(powerup => powerup.position.equals(head.position));
+            if (powerup) {
+                scene.remove(powerup);
+
+                const id = `powerup-${Math.random() * 8999 + 1000}`;
+                activePowerups.push({
+                    id,
+                    type: powerup.userData.type,
+                    start: new Date()
+                });
+
+                const el = document.getElementsByClassName('hud-powerups-sample')[0].cloneNode(true);
+                el.classList.remove('d-none');
+                el.classList.add('d-flex');
+                el.id = id;
+                el.getElementsByClassName('hud-image')[0].src = levelConfig.powerups[powerup.userData.type].icon;
+                document.getElementById('hud-powerups').appendChild(el);
+            }
+
+            activePowerups.forEach((powerup, i) => {
+                const el = document.getElementById(powerup.id);
+                const left = 10 - (new Date() - powerup.start) / 1000;
+                if (left < 0) {
+                    // remove
+                    activePowerups.splice(i, 1);
+                    el.remove();
+                } else {
+                    const seconds = Math.floor(left % 60);
+                    const minutes = Math.floor(left / 60);
+                    el.getElementsByClassName('hud-duration')[0].innerText = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                }
+            });
+
+            const isGhost = activePowerups.find(powerup => powerup.type === 'ghost');
+            const isSnail = activePowerups.find(powerup => powerup.type === 'snail');
+
             const win = collected >= currentLevel().goal;
-            const lose = isPositionOnSnakeBody(head.position, snake) || isPositionOutOfBounds(head.position) || isSnakeHeadCrashedOnSlope(snake, slope);
+            const lose = 
+                (!isGhost && isPositionOnSnakeBody(head.position, snake)) 
+                || isPositionOutOfBounds(head.position)
+                || (!isGhost && isSnakeHeadCrashedOnSlope(snake, slope));
 
             if (win || lose) {
                 let sound;
@@ -640,45 +694,14 @@ const tick = (deltaTime) => {
                     });
                 }
             } else {
-                const powerup = powerups.find(powerup => powerup.position.equals(head.position));
-                if (powerup) {
-                    scene.remove(powerup);
-
-                    const id = `powerup-${Math.random() * 8999 + 1000}`;
-                    activePowerups.push({
-                        id,
-                        type: powerup.userData.type,
-                        start: new Date()
-                    });
-
-                    const el = document.getElementsByClassName('hud-powerups-sample')[0].cloneNode(true);
-                    el.classList.remove('d-none');
-                    el.classList.add('d-flex');
-                    el.id = id;
-                    // TODO FIX image
-                    document.getElementById('hud-powerups').appendChild(el);
-                }
-
-                activePowerups.forEach((powerup, i) => {
-                    const el = document.getElementById(powerup.id);
-                    const left = 10 - (new Date() - powerup.start) / 1000;
-                    if (left < 0) {
-                        // remove
-                        activePowerups.splice(i, 1);
-                        el.remove();
-                    } else {
-                        const seconds = Math.floor(left % 60);
-                        const minutes = Math.floor(left / 60);
-                        el.getElementsByClassName('hud-duration')[0].innerText = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-                    }
-                });
-
-                const isGhost = activePowerups.find(powerup => powerup.type === 'ghost');
-                const isSnail = activePowerups.find(powerup => powerup.type === 'ghost');
-
-                window.snake = snake;
-                const opacity = isGhost ? 1 : 0.5;
+                const opacity = isGhost ? 0.5 : 1;
                 snake.forEach(el => el.children[0].material.opacity = opacity);
+
+                if (isSnail) {
+                    tickMultiplier = 2;
+                } else {
+                    tickMultiplier = 1;
+                }
 
                 let tailPosition = getSnakeTail(snake).position;
                 moveSnake(snake, snakeDirection);
