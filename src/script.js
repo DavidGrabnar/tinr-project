@@ -830,8 +830,8 @@ const submitResults = async () => {
 
 const getStatistics = async () => {
     try {
-        const response = await axios.get(`${BASE_URL}/statistics?name=${username}`);
-        return response.data.leaderboard;
+        const response = await axios.get(`${BASE_URL}/statistics-weekly?username=${username}`);
+        return {statistics: response.data.statistics, totalScore: response.data.totalScore};
     } catch (e) {
         console.error(e);
     }
@@ -878,6 +878,8 @@ const changeViewTo = (viewId)  => {
     currentView = viewId;
     if (viewId === 'leaderboard') {
         provideLeaderboard();
+    } else if (viewId === 'statistics') {
+        provideStatistics();
     }
 };
 
@@ -988,10 +990,13 @@ const provideLeaderboard = async () => {
     progress.classList.remove('d-none');
     progress.classList.add('d-block');
 
+    const wrapper = document.getElementById('leaderboard-entries');
+    wrapper.classList.remove('d-block');
+    wrapper.classList.add('d-none');
+
     const leaderboard = await getLeaderboard();
 
     const sample = document.getElementsByClassName('leaderboard-sample')[0];
-    const wrapper = document.getElementById('leaderboard-entries');
     while (wrapper.firstChild) {
         wrapper.removeChild(wrapper.firstChild);
     }
@@ -1007,6 +1012,49 @@ const provideLeaderboard = async () => {
 
     progress.classList.remove('d-block');
     progress.classList.add('d-none');
+
+    wrapper.classList.remove('d-none');
+    wrapper.classList.add('d-block');
+};
+
+const provideStatistics = async () => {
+    const progress = document.getElementById('statistics-progress');
+    progress.classList.remove('d-none');
+    progress.classList.add('d-block');
+
+    const mainWrapper = document.getElementById('statistics-entries');
+    mainWrapper.classList.remove('d-block');
+    mainWrapper.classList.add('d-none');
+
+    const {statistics, totalScore} = await getStatistics();
+
+    document.getElementsByClassName('statistics-score')[0].innerText = totalScore;
+
+    const sample = document.getElementsByClassName('statistics-sample')[0];
+    const wrapper = document.getElementById('statistics-details-entries');
+    while (wrapper.firstChild) {
+        wrapper.removeChild(wrapper.firstChild);
+    }
+
+    statistics.forEach(stats => {
+        const clone = sample.cloneNode(true);
+        const seconds = Math.floor(stats.totalTimeSpent % 60);
+        const minutes = Math.floor(stats.totalTimeSpent / 60);
+        clone.getElementsByClassName('statistics-level')[0].innerText = stats.level;
+        clone.getElementsByClassName('statistics-wins-attempts')[0].innerText = `${stats.wins}/${stats.attempts}`;
+        clone.getElementsByClassName('statistics-spent')[0].innerText = `${minutes < 10 ? '0' : ''}${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+        clone.getElementsByClassName('statistics-best-score')[0].innerText = stats.bestScore;
+        clone.classList.remove('d-none');
+        clone.classList.add('d-flex');
+
+        wrapper.appendChild(clone);
+    });
+
+    progress.classList.remove('d-block');
+    progress.classList.add('d-none');
+
+    mainWrapper.classList.remove('d-none');
+    mainWrapper.classList.add('d-block');
 };
 
 const updateHud = () => {

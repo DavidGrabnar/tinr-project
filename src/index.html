@@ -69,44 +69,33 @@
                 <div class="interface-text col-4 text-start">Total</div>
                 <div class="interface-text col-2">Details</div>
             </div>
-            <div class="d-flex flex-row py-2">
-                <div class="interface-text col-6 text-start">Snake</div>
-                <div class="interface-text col-4 text-start">45</div>
-                <div class="interface-text interface-icon-button col-2" onclick="changeViewTo('statistics-game-details')">&#9432;</div>
+            <div id="statistics-entries" class="d-flex flex-column">
+                <div class="d-flex flex-row py-2">
+                    <div class="interface-text col-6 text-start">Snake</div>
+                    <div class="interface-text col-4 text-start statistics-score"></div>
+                    <div class="interface-text interface-icon-button col-2" onclick="changeViewTo('statistics-game-details')">&#9432;</div>
+                </div>
             </div>
-            <div class="d-flex flex-row py-2">
-                <div class="interface-text col-6 text-start">Minesweeper</div>
-                <div class="interface-text col-4 text-start">76</div>
-                <div class="interface-text interface-icon-button col-2" onclick="changeViewTo('statistics-game-details')">&#9432;</div>
+            <div id="statistics-progress" class="d-block interface-progress">
+                <span>&#10227;</span>
             </div>
             <div class="btn interface-button" onclick="changeViewTo('main')">Back</div>
         </div>
         <div id="statistics-game-details" class="d-none flex-column text-center p-3 interface-card large">
-            <div class="interface-title text-uppercase">Statistics: Janez: Snake</div>
+            <div class="interface-title text-uppercase">Statistics: Snake</div>
             <div class="d-flex flex-row interface-table-header">
                 <div class="interface-text col-3 text-start">Level</div>
-                <div class="interface-text col-3 text-start">Attempts</div>
-                <div class="interface-text col-3 text-start">Time spent</div>
+                <div class="interface-text col-3 text-start">Wins / Attempts</div>
+                <div class="interface-text col-3 text-start">Total Time Spent</div>
                 <div class="interface-text col-3 text-start">Best Score</div>
             </div>
-            <div class="d-flex flex-row py-2">
-                <div class="interface-text col-3 text-start">1</div>
-                <div class="interface-text col-3 text-start">2</div>
-                <div class="interface-text col-3 text-start">1:26</div>
-                <div class="interface-text col-3 text-start">7</div>
+            <div class="d-none flex-row py-2 statistics-sample">
+                <div class="interface-text col-3 text-start statistics-level"></div>
+                <div class="interface-text col-3 text-start statistics-wins-attempts"></div>
+                <div class="interface-text col-3 text-start statistics-spent"></div>
+                <div class="interface-text col-3 text-start statistics-best-score"></div>
             </div>
-            <div class="d-flex flex-row py-2">
-                <div class="interface-text col-3 text-start">2</div>
-                <div class="interface-text col-3 text-start">4</div>
-                <div class="interface-text col-3 text-start">3:44</div>
-                <div class="interface-text col-3 text-start">18</div>
-            </div>
-            <div class="d-flex flex-row py-2">
-                <div class="interface-text col-3 text-start">3</div>
-                <div class="interface-text col-3 text-start">7</div>
-                <div class="interface-text col-3 text-start">7:06</div>
-                <div class="interface-text col-3 text-start">20</div>
-            </div>
+            <div id="statistics-details-entries"></div>
             <div class="btn interface-button" onclick="changeViewTo('statistics')">Back</div>
         </div>
         <div id="settings" class="d-none flex-column text-center p-3 interface-card large">
@@ -174,7 +163,7 @@
                 <div class="interface-text col-6 text-start">Score: </div>
                 <div id="game-over-score" class="interface-text col-6 text-start">10</div>
             </div>
-            <div class="btn interface-button" onclick="changeViewTo('main')">Back</div>
+            <div class="btn interface-button" onclick="changeViewTo('snake-levels')">Back</div>
         </div>
         <div id="leaderboard" class="d-none flex-column text-center p-3 interface-card large">
             <div class="interface-title text-uppercase">Leaderboard</div>
