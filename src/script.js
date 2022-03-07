@@ -209,6 +209,7 @@ const clock = new THREE.Clock()
 let snakePartInstance = null;
 let appleInstance = null;
 let slopeInstance = null;
+let mouseInstance = null;
 
 // game objects
 let snake = [];
@@ -218,12 +219,13 @@ let activePowerups = [];
 let snakeDirection = 0;
 let prevMoveTime = 0;
 
-let cyclesPerAppleMove = 1;
-let variationCyclePerAppleMove = 0;
+let cyclesPerElementMove = 1;
 
 let cyclesFromLastAppleMove = 0;
 
 let apple = null;
+let mouse = null;
+let mouseDirection = 1;
 
 let slope = null;
 // 0 -> +x, 1 -> -x, 2 -> +y, 3 -> -y
@@ -341,9 +343,14 @@ const onDocumentKeyDown = (event) => {
     }
 };
 
-const isSnakeHeadOnApple = (snake, apple) => {
+const isSnakeHeadOnElement = (snake, el) => {
+    const target = el.position.clone();
+    // handle mouse position
+    if (target.y % 0.5 !== 0) {
+        target.y += 0.25;
+    }
     const head = getSnakeHead(snake);
-    return head.position.equals(apple.position);
+    return head.position.equals(target);
 }
 
 const isPositionOnSnakeBody = (position, snake) => {
@@ -371,9 +378,9 @@ const isPositionOutOfBounds = (position) => {
      || position.z >= FLOOR_Y_SIZE / 2;
 }
 
-const isAppleOnSnake = (apple, snake) => {
+const isElementOnSnake = (el, snake) => {
     for (const part of snake) {
-        if (part.position.equals(apple.position)) {
+        if (part.position.equals(el.position)) {
             return true;
         }
     }
@@ -406,11 +413,11 @@ const isAnythingBelowSnakeHead = (snake, apple, slope) => {
     return false;
 }
 
-const moveToRandomPosition = (apple, snake) => {
+const moveToRandomPosition = (el, snake) => {
     for (let i = 0; i < MAX_RADOM_POSITION_ATTEMT; i++) {
-        apple.position.x = Math.floor(Math.random() * FLOOR_X_SIZE) - (FLOOR_X_SIZE / 2) + 0.5;
-        apple.position.z = Math.floor(Math.random() * FLOOR_Y_SIZE) - (FLOOR_Y_SIZE / 2) + 0.5;
-        if (!isAppleOnSnake(apple, snake)) {
+        el.position.x = Math.floor(Math.random() * FLOOR_X_SIZE) - (FLOOR_X_SIZE / 2) + 0.5;
+        el.position.z = Math.floor(Math.random() * FLOOR_Y_SIZE) - (FLOOR_Y_SIZE / 2) + 0.5;
+        if (!isElementOnSnake(el, snake)) {
             return;
         }
     }
@@ -486,40 +493,55 @@ const easeDeLaSphagetti = (x) => {
     : (2 * (x - 0.5) * 1.5) - 0.5;
 }
 
-const moveApple = (apple, snake) => {
-    const newApplePosition = apple.position.clone();
+const moveElement = (el, snake) => {
+    const newElementPosition = el.position.clone();
     const snakeHeadPosition = getSnakeHead(snake).position;
-    const diffX = newApplePosition.x - snakeHeadPosition.x;
-    const diffY = newApplePosition.z - snakeHeadPosition.z;
+    const diffX = newElementPosition.x - snakeHeadPosition.x;
+    const diffY = newElementPosition.z - snakeHeadPosition.z;
 
     if (Math.abs(diffX) > Math.abs(diffY)) {
-        newApplePosition.x += diffX !== 0 ? diffX / Math.abs(diffX) : 0;
+        newElementPosition.x += diffX !== 0 ? diffX / Math.abs(diffX) : 0;
     } else {
-        newApplePosition.z += diffY !== 0 ? diffY / Math.abs(diffY): 0;
+        newElementPosition.z += diffY !== 0 ? diffY / Math.abs(diffY) : 0;
     }
 
-    if (isPositionOnSnakeBody(newApplePosition, snake) || isPositionOutOfBounds(newApplePosition) || isPositionOnSlope(newApplePosition, slope)) {
-        newApplePosition.copy(apple.position);
+    if (isPositionOnSnakeBody(newElementPosition, snake) || isPositionOutOfBounds(newElementPosition) || isPositionOnSlope(newElementPosition, slope)) {
+        newElementPosition.copy(el.position);
         if (Math.abs(diffX) > Math.abs(diffY)) {
-            newApplePosition.z += diffY !== 0 ? diffY / Math.abs(diffY): 0;
+            newElementPosition.z += diffY !== 0 ? diffY / Math.abs(diffY) : 0;
         } else {
-            newApplePosition.x += diffX !== 0 ? diffX / Math.abs(diffX) : 0;
+            newElementPosition.x += diffX !== 0 ? diffX / Math.abs(diffX) : 0;
         }
 
-        if (isPositionOnSnakeBody(newApplePosition, snake) || isPositionOutOfBounds(newApplePosition) || isPositionOnSlope(newApplePosition, slope)) {
-            newApplePosition.copy(apple.position);
+        if (isPositionOnSnakeBody(newElementPosition, snake) || isPositionOutOfBounds(newElementPosition) || isPositionOnSlope(newElementPosition, slope)) {
+            newElementPosition.copy(el.position);
             if (Math.abs(diffX) > Math.abs(diffY)) {
-                newApplePosition.z -= diffY !== 0 ? diffY / Math.abs(diffY): 0;
+                newElementPosition.z -= diffY !== 0 ? diffY / Math.abs(diffY) : 0;
             } else {
-                newApplePosition.x -= diffX !== 0 ? diffX / Math.abs(diffX) : 0;
+                newElementPosition.x -= diffX !== 0 ? diffX / Math.abs(diffX) : 0;
             }
 
-            if (isPositionOnSnakeBody(newApplePosition, snake) || isPositionOutOfBounds(newApplePosition) || isPositionOnSlope(newApplePosition, slope)) {
+            if (isPositionOnSnakeBody(newElementPosition, snake) || isPositionOutOfBounds(newElementPosition) || isPositionOnSlope(newElementPosition, slope)) {
             }
         }
     }
-    new TWEEN.Tween(apple.position)
-        .to(newApplePosition, settings.moveDuration * tickMultiplier * 0.9 * 1000)
+
+    if (newElementPosition.z < mouse.position.z) {
+        el.rotateY(0 - el.rotation.y);
+    } else if (newElementPosition.x < mouse.position.x) {
+        el.rotateY(Math.PI - el.rotation.y);
+    } else if (newElementPosition.z > mouse.position.z) {
+        console.log('test', newElementPosition, mouse.position);
+        console.log('high y');
+        el.rotateY((-Math.PI / 2) - el.rotation.y);
+    } else {
+        console.log('test', newElementPosition, mouse.position);
+        console.log('high x');
+        el.rotateY((Math.PI / 2) - el.rotation.y);
+    }
+
+    new TWEEN.Tween(el.position)
+        .to(newElementPosition, settings.moveDuration * tickMultiplier * 0.9 * 1000)
         .easing(TWEEN.Easing.Quadratic.Out)
         .start()
 };
@@ -539,14 +561,20 @@ const addSnakePart = (snake, tailPosition) => {
     snake.push(part);
 };
 
-const ready = (snake, apple, slope) => {
-    return snake.length > 0 && !!apple && !!slope;
+const activeTarget = () => {
+    return currentLevel().dynamic
+        ? mouse
+        : apple;
+}
+
+const ready = (snake, apple, mouse, slope) => {
+    return snake.length > 0 && !!apple && !!mouse && !!slope;
 };
 
 const tick = (deltaTime) => {
     const currTime = clock.getElapsedTime();
 
-    if (start && ready(snake, apple, slope)) {
+    if (start && ready(snake, apple, mouse, slope)) {
         // Update objects
         if (currTime - prevMoveTime >= settings.moveDuration * tickMultiplier) {
             // check game state
@@ -706,7 +734,7 @@ const tick = (deltaTime) => {
                 let tailPosition = getSnakeTail(snake).position;
                 moveSnake(snake, snakeDirection);
     
-                if (isSnakeHeadOnApple(snake, apple)) {
+                if (isSnakeHeadOnElement(snake, activeTarget())) {
                     if (eatSound.sourceType !== 'empty') {
                         if (eatSound.isPlaying) {
                             eatSound.stop();
@@ -716,12 +744,12 @@ const tick = (deltaTime) => {
                     }
                     collected++;
                     addSnakePart(snake, tailPosition);
-                    moveToRandomPosition(apple, snake);
+                    moveToRandomPosition(activeTarget(), snake);
                 } else {
                     if (currentLevel().dynamic) {
-                        cyclesFromLastAppleMove += cyclesPerAppleMove;
-                        if (cyclesFromLastAppleMove >= cyclesPerAppleMove) {
-                            moveApple(apple, snake);
+                        cyclesFromLastAppleMove += cyclesPerElementMove;
+                        if (cyclesFromLastAppleMove >= cyclesPerElementMove) {
+                            moveElement(activeTarget(), snake);
                             cyclesFromLastAppleMove = 0;
                         }
                     }
@@ -747,7 +775,7 @@ const tick = (deltaTime) => {
 };
 
 const reset = () => {
-    if (!ready(snake, apple, slope)) {
+    if (!ready(snake, apple, mouse, slope)) {
         return;
     }
     const body = snake.splice(1);
@@ -771,7 +799,19 @@ const reset = () => {
     
     spawnPowerups();
 
-    moveToRandomPosition(apple, snake);
+    if (currentLevel().dynamic) {
+        scene.add(mouse);
+        scene.remove(apple);
+        moveToRandomPosition(mouse, snake);
+        apple.position.x = -100;
+        apple.position.z = -100;
+    } else {
+        scene.add(apple);
+        scene.remove(mouse);
+        moveToRandomPosition(apple, snake);
+        mouse.position.x = -100;
+        mouse.position.z = -100;
+    }
 
 };
 
@@ -1176,7 +1216,7 @@ const init = () => {
         (appleModel => {
             // init model instance
             appleInstance = appleModel.clone();
-            appleInstance.children.forEach(c => c.scale.set(.5, .5, .5));
+            appleInstance.children.forEach(c => c.scale.set(.45, .45, .45));
             appleInstance.children[0].material = new THREE.MeshStandardMaterial( {color: 0xeb4934} );
             appleInstance.children[1].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
             appleInstance.children[2].material = new THREE.MeshStandardMaterial( {color: 0x1c7a26} );
@@ -1189,6 +1229,27 @@ const init = () => {
             apple = appleInstance.clone();
             moveToRandomPosition(apple, snake || []);
             scene.add(apple);
+        }
+    ));
+    modelLoader.load(assetUrl('models/mouse.obj'), 
+        (mouseModel => {
+            // init model instance
+            mouseInstance = mouseModel.clone();
+            mouseInstance.children.forEach(c => c.scale.set(.45, .45, .45));
+            mouseInstance.children[0].material = new THREE.MeshStandardMaterial( {color: 0xababab} );
+            mouseInstance.children[1].material = new THREE.MeshStandardMaterial( {color: 0xababab} );
+            mouseInstance.children[2].material = new THREE.MeshStandardMaterial( {color: 0xababab} );
+            mouseInstance.children[3].material = new THREE.MeshStandardMaterial( {color: 0xff69eb} );
+            mouseInstance.children[4].material = new THREE.MeshStandardMaterial( {color: 0xff69eb} );
+            mouseInstance.children[5].material = new THREE.MeshStandardMaterial( {color: 0xffffff} );
+            mouseInstance.children.forEach(c => c.castShadow = true);
+            mouseInstance.position.x = -FLOOR_X_POSITION + 0.5;
+            mouseInstance.position.z = -FLOOR_Y_POSITION + 0.5;
+            mouseInstance.position.y = -FLOOR_Z_POSITION + 0.25;
+
+            // init game object
+            mouse = mouseInstance.clone();
+            moveToRandomPosition(mouse, snake || []);
         }
     ));
     modelLoader.load(assetUrl('models/slope_2.obj'), 
