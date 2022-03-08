@@ -91,11 +91,13 @@ const FLOOR_Y_COUNT = 10;
 
 const MAX_RADOM_POSITION_ATTEMT = 1000;
 
-const floor = new THREE.Mesh( new THREE.BoxGeometry( FLOOR_X_SIZE, 1, FLOOR_Y_SIZE ), new THREE.MeshStandardMaterial( {color: 0x996f31} ));
+const floor = new THREE.Group();
+const floorTile = new THREE.Mesh( new THREE.BoxGeometry( FLOOR_X_SIZE, 1, FLOOR_Y_SIZE ), new THREE.MeshStandardMaterial( {color: 0x996f31} ));
+floorTile.receiveShadow = true;
+floor.add(floorTile);
 floor.position.x = FLOOR_X_POSITION - (FLOOR_X_SIZE / 2);
 floor.position.z = FLOOR_Y_POSITION - (FLOOR_Y_SIZE / 2);
 floor.position.y = FLOOR_Z_POSITION - (FLOOR_Z_SIZE / 2);
-floor.receiveShadow = true;
 scene.add( floor );
 
 /**
@@ -116,16 +118,13 @@ const loadSettings = () => {
         const storageKey = `setting-${key}`;
         let value = JSON.parse(localStorage.getItem(storageKey));
         if (!value) {
-            console.log('loading default setting', key, defaultSettings[key]);
             value = defaultSettings[key];
         }
-        console.log('updating setting', key, defaultSettings[key]);
         updateSetting(key, value);
     });
 };
 
 const updateSetting = (key, value) => {
-    console.log('update setting', key, value);
     settings[key] = value;
     const storageKey = `setting-${key}`;
     localStorage.setItem(storageKey, JSON.stringify(value));
@@ -215,6 +214,7 @@ let mouseInstance = null;
 let snake = [];
 let powerups = [];
 let activePowerups = [];
+const holeIndices = [];
 // 0 -> +x, 1 -> -x, 2 -> +y, 3 -> -y
 let snakeDirection = 0;
 let prevMoveTime = 0;
@@ -225,7 +225,6 @@ let cyclesFromLastAppleMove = 0;
 
 let apple = null;
 let mouse = null;
-let mouseDirection = 1;
 
 let slope = null;
 // 0 -> +x, 1 -> -x, 2 -> +y, 3 -> -y
@@ -255,62 +254,566 @@ const levelConfig = {
         {
             goal: 3,
             dynamic: false,
-            powerups: ['ghost', 'snail']
+            powerups: ['ghost', 'snail'],
+            holeCount: 2,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 2, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 2, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 2, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 2, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 2, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 2, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 2, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 2, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 2, direction: 1 },
+                { type: 'stair', x: 5, z: 2, y: 2, direction: 1 },
+                { type: 'stair', x: 2, z: 5, y: 2, direction: 2 },
+
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         },
         {
             goal: 3,
             dynamic: false,
-            powerups: []
+            powerups: [],
+            holeCount: 0,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         },
         {
             goal: 3,
             dynamic: false,
-            powerups: [] 
+            powerups: [],
+            holeCount: 0,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         },
         {
             goal: 3,
             dynamic: false,
-            powerups: [] 
+            powerups: [],
+            holeCount: 0,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         },
         {
             goal: 3,
             dynamic: false,
-            powerups: [] 
+            powerups: [],
+            holeCount: 0,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         },
         {
             goal: 3,
             dynamic: false,
-            powerups: [] 
+            powerups: [],
+            holeCount: 0,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         },
         {
             goal: 3,
             dynamic: true,
-            powerups: [] 
+            powerups: [],
+            holeCount: 0,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         },
         {
             goal: 3,
             dynamic: true,
-            powerups: [] 
+            powerups: [],
+            holeCount: 0,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         },
         {
             goal: 3,
             dynamic: true,
-            powerups: [] 
+            powerups: [],
+            holeCount: 0,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         },
         {
             goal: 3,
             dynamic: true,
-            powerups: [] 
+            powerups: [],
+            holeCount: 0,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         },
         {
             goal: 3,
             dynamic: true,
-            powerups: [] 
+            powerups: [],
+            holeCount: 0,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         },
         {
             goal: 3,
             dynamic: true,
-            powerups: [] 
+            powerups: [],
+            holeCount: 0,
+            obstacles: [
+                { type: 'wall', x: 5, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 5, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 4, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 3, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 2, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 1, y: 1, direction: 1 },
+                { type: 'wall', x: 5, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 4, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 3, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 2, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 1, z: 0, y: 1, direction: 1 },
+                { type: 'wall', x: 0, z: 0, y: 1, direction: 1 },
+                { type: 'stair', x: 5, z: -1, y: 1, direction: 1 },
+                { type: 'stair', x: -1, z: 5, y: 1, direction: 2 }
+            ]
         }
     ]
 };
@@ -362,13 +865,66 @@ const isPositionOnSnakeBody = (position, snake) => {
     return false;
 }
 
-const isPositionOnSlope = (position, slope) => {
-    return position.equals(slope.position);
+const collidingFloorTile = (position) => {
+    return floor.children.find(child => {
+        const childPos = child.position.clone();
+        childPos.y -= 0.5;
+        return position.equals(childPos);
+    });
 }
 
-const isSnakeHeadCrashedOnSlope = (snake, slope) => {
+const isPositionOnFloor = (position) => {
+    return !!collidingFloorTile(position);
+}
+
+const mapSnakeDirection = (direction) => {
+    switch (direction) {
+        case 0: return 2;
+        case 1: return 0;
+        case 2: return 1;
+        case 3: return 3;
+    }
+}
+
+const isSnakeHeadCrashedOnFloor = (snake) => {
     const head = getSnakeHead(snake);
-    return isPositionOnSlope(head.position, slope) && snakeDirection !== slopeDirection;
+    const tile = collidingFloorTile(head.position);
+    if (!tile) {
+        return false;
+    }
+    if (tile.userData.type === 'stair' && tile.userData.direction === mapSnakeDirection(snakeDirection)) {
+        return false;
+    }
+    return true;
+}
+
+const isSnakeHeadInFrontOfStairs = (snake) => {
+    const head = getSnakeHead(snake);
+    const frontHeadPosition = head.position.clone();
+    switch (snakeDirection) {
+        case 0:
+            frontHeadPosition.x += 1;
+            break;
+        case 1:
+            frontHeadPosition.x -= 1;
+            break;
+        case 2:
+            frontHeadPosition.z += 1;
+            break;
+        case 3:
+            frontHeadPosition.z -= 1;
+            break;
+        default:
+            console.warn(`Invalid snake direction '${snakeDirection}'. Should be in range [0, 3]. Defaulting 'isSnakeHeadInFrontOfStairs'.`);
+    }
+    const tile = collidingFloorTile(frontHeadPosition);
+    if (!tile || tile.userData.type !== 'stair') {
+        return false;
+    }
+    if (tile.userData.direction !== mapSnakeDirection(snakeDirection)) {
+        return false;
+    }
+    return true;
 }
 
 const isPositionOutOfBounds = (position) => {
@@ -396,9 +952,9 @@ const isAnythingBelowSnakeHead = (snake, apple, slope) => {
         return true;
     }
 
-    const slopePos = slope.position.clone();
-    slopePos.y += 1;
-    if (head.position.equals(slopePos)) {
+    const belowHead = head.position.clone();
+    belowHead.y -= 1;
+    if (isPositionOnFloor(belowHead)) {
         return true;
     }
 
@@ -413,10 +969,16 @@ const isAnythingBelowSnakeHead = (snake, apple, slope) => {
     return false;
 }
 
+const findFreeY = (position) => {
+    const sameCoordTiles = floor.children.filter(child => child.position.x === position.x && child.position.z === position.z);
+    return sameCoordTiles.reduce((max, child) => child.position.y > max ? child.position.y : max, 0);
+};
+
 const moveToRandomPosition = (el, snake) => {
     for (let i = 0; i < MAX_RADOM_POSITION_ATTEMT; i++) {
         el.position.x = Math.floor(Math.random() * FLOOR_X_SIZE) - (FLOOR_X_SIZE / 2) + 0.5;
         el.position.z = Math.floor(Math.random() * FLOOR_Y_SIZE) - (FLOOR_Y_SIZE / 2) + 0.5;
+        el.position.y = findFreeY(el.position) + 0.5;
         if (!isElementOnSnake(el, snake)) {
             return;
         }
@@ -451,11 +1013,9 @@ const moveSnake = (snake, snakeDirection) => {
                 default:
                     console.warn(`Invalid snake direction '${snakeDirection}'. Should be in range [0, 3]. Skipping 'moveSnake'.`);
             }
-            if (isPositionOnSlope(head.position, slope)) {
-                console.log('will increase');
+            if (isSnakeHeadInFrontOfStairs(snake)) {
                 prevPosition.y += 1;
             } else if (prevPosition.y !== -FLOOR_Z_POSITION + 0.5 && !isAnythingBelowSnakeHead(snake, apple, slope)) {
-                console.log('will decrease');
                 prevPosition.y -= 1;
             }
         }
@@ -505,7 +1065,7 @@ const moveElement = (el, snake) => {
         newElementPosition.z += diffY !== 0 ? diffY / Math.abs(diffY) : 0;
     }
 
-    if (isPositionOnSnakeBody(newElementPosition, snake) || isPositionOutOfBounds(newElementPosition) || isPositionOnSlope(newElementPosition, slope)) {
+    if (isPositionOnSnakeBody(newElementPosition, snake) || isPositionOutOfBounds(newElementPosition) || isPositionOnFloor(newElementPosition)) {
         newElementPosition.copy(el.position);
         if (Math.abs(diffX) > Math.abs(diffY)) {
             newElementPosition.z += diffY !== 0 ? diffY / Math.abs(diffY) : 0;
@@ -513,7 +1073,7 @@ const moveElement = (el, snake) => {
             newElementPosition.x += diffX !== 0 ? diffX / Math.abs(diffX) : 0;
         }
 
-        if (isPositionOnSnakeBody(newElementPosition, snake) || isPositionOutOfBounds(newElementPosition) || isPositionOnSlope(newElementPosition, slope)) {
+        if (isPositionOnSnakeBody(newElementPosition, snake) || isPositionOutOfBounds(newElementPosition) || isPositionOnFloor(newElementPosition)) {
             newElementPosition.copy(el.position);
             if (Math.abs(diffX) > Math.abs(diffY)) {
                 newElementPosition.z -= diffY !== 0 ? diffY / Math.abs(diffY) : 0;
@@ -521,7 +1081,7 @@ const moveElement = (el, snake) => {
                 newElementPosition.x -= diffX !== 0 ? diffX / Math.abs(diffX) : 0;
             }
 
-            if (isPositionOnSnakeBody(newElementPosition, snake) || isPositionOutOfBounds(newElementPosition) || isPositionOnSlope(newElementPosition, slope)) {
+            if (isPositionOnSnakeBody(newElementPosition, snake) || isPositionOutOfBounds(newElementPosition) || isPositionOnFloor(newElementPosition)) {
             }
         }
     }
@@ -620,7 +1180,7 @@ const tick = (deltaTime) => {
             const lose = 
                 (!isGhost && isPositionOnSnakeBody(head.position, snake)) 
                 || isPositionOutOfBounds(head.position)
-                || (!isGhost && isSnakeHeadCrashedOnSlope(snake, slope));
+                || (!isGhost && isSnakeHeadCrashedOnFloor(snake));
 
             if (win || lose) {
                 let sound;
@@ -799,6 +1359,61 @@ const reset = () => {
     
     spawnPowerups();
 
+    holeIndices.splice(0);
+    const indicesCount = 100;
+    for (let i = 0; i < currentLevel().holeCount; i++) {
+        holeIndices.push(Math.floor(Math.random() * indicesCount));
+    }
+
+    floor.children.forEach(child => floor.remove(child));
+    
+    for (let i = 0; i < indicesCount; i++) {
+        // TODO temporarily disabled
+        //if (holeIndices.includes(i)) {
+        //    continue;
+        //}
+        const x = Math.floor(i / 10);
+        const z = i % 10;
+
+        const tile = new THREE.Mesh( new THREE.BoxGeometry( 1, 1, 1 ), new THREE.MeshStandardMaterial( {color: 0x996f31} ));
+        tile.position.x = x - FLOOR_X_POSITION + 0.5;
+        tile.position.z = z - FLOOR_Y_POSITION + 0.5;
+        tile.receiveShadow = true;
+        floor.add(tile);
+    }
+
+    for (let obstacle of currentLevel().obstacles) {
+        const {type, x, y, z, direction} = obstacle;
+
+        let tile;
+        switch (type) {
+            case 'stair':
+                tile = slopeInstance.clone();
+                tile.position.x = x - 0.5;
+                tile.position.z = z - 0.5;
+                tile.position.y = y;
+                tile.rotateY(direction * Math.PI / 2);
+                tile.userData.type = type;
+                tile.userData.direction = direction;
+                floor.add(tile);
+                break;
+            case 'wall':
+                tile = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), new THREE.MeshStandardMaterial({color: 0x8b4ee6}));
+                tile.castShadow = true;
+                tile.position.x = x - 0.5;
+                tile.position.z = z - 0.5;
+                tile.position.y = y;
+                tile.rotateY(direction * Math.PI / 2);
+                tile.userData.type = type;
+                tile.userData.direction = direction;
+                floor.add(tile);
+                break;
+            default:
+                console.warn(`Invalid obstacle type '${type}'`);
+                continue;
+        }
+    }
+
     if (currentLevel().dynamic) {
         scene.add(mouse);
         scene.remove(apple);
@@ -812,7 +1427,6 @@ const reset = () => {
         mouse.position.x = -100;
         mouse.position.z = -100;
     }
-
 };
 
 const spawnPowerups = () => {
@@ -825,6 +1439,7 @@ const spawnPowerups = () => {
                 const powerup = levelConfig.powerups[key].instance.clone();
                 powerup.position.x = Math.floor(Math.random() * FLOOR_X_SIZE) - (FLOOR_X_SIZE / 2) + 0.5;
                 powerup.position.z = Math.floor(Math.random() * FLOOR_Y_SIZE) - (FLOOR_Y_SIZE / 2) + 0.5;
+                powerup.position.y = findFreeY(powerup.position) + 0.5;
                 const payload = {angle: 0, prevAngle: 0};
                 new TWEEN.Tween(payload)
                     .to({angle: 2 * Math.PI}, 1000)
@@ -909,7 +1524,6 @@ const changeViewTo = (viewId)  => {
     if (!currView) {
         console.error(`Current view with id '${currentView}' not found!`);
     }
-    console.log(viewId, currentView, prevView);
     currView.classList.remove('d-flex');
     currView.classList.add('d-none');
     newView.classList.add('d-flex');
@@ -1265,7 +1879,6 @@ const init = () => {
 
             // init game object
             slope = slopeInstance.clone();
-            scene.add(slope);
         }
     ));
 
