@@ -4,7 +4,6 @@ import './style.css';
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
-import * as dat from 'dat.gui'
 
 import * as TWEEN from '@tweenjs/tween.js';
 
@@ -26,8 +25,6 @@ const assetUrl = (url) => {
 /**
  * Base
  */
-// Debug
-const gui = new dat.GUI()
 
 // Textures
 const textureLoader = new THREE.TextureLoader()
@@ -803,7 +800,6 @@ fetch(assetUrl('textures/snail.png'))
  */
 const onDocumentKeyDown = (event) => {
     let keyCode = event.which;
-    console.log('test', keyCode, event);
     if ((keyCode == 87 || keyCode == 38) && (snakeDirection === 2 || snakeDirection === 3)) {
         snakeDirection = 0;
     } else if ((keyCode == 83 || keyCode == 40) && (snakeDirection === 2 || snakeDirection === 3)) {
@@ -857,7 +853,6 @@ const mapSnakeDirection = (direction) => {
 
 const isElementCrashedOnFloor = (position, direction) => {
     const tile = collidingFloorTile(position);
-    console.warn('test crash', position, direction, tile);
     if (!tile) {
         return false;
     }
@@ -1072,12 +1067,8 @@ const moveElement = (el, snake) => {
     } else if (newElementPosition.x < mouse.position.x) {
         el.rotateY(Math.PI - el.rotation.y);
     } else if (newElementPosition.z > mouse.position.z) {
-        console.log('test', newElementPosition, mouse.position);
-        console.log('high y');
         el.rotateY((-Math.PI / 2) - el.rotation.y);
     } else {
-        console.log('test', newElementPosition, mouse.position);
-        console.log('high x');
         el.rotateY((Math.PI / 2) - el.rotation.y);
     }
 
